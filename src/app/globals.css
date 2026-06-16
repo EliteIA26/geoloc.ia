@@ -25,3 +25,35 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* ── Editorial design tokens (Incremento 1) ──────────────────────────────
+   Insight-first, light/elegant "data-journalism" look. Light only — dark
+   mode is out of scope for the panel. Additive: does not touch the base
+   tokens above. */
+:root {
+  --bg-page: #faf9f6; /* warm off-white page */
+  --bg-card: #ffffff; /* white cards */
+  --hairline: rgba(40, 38, 34, 0.1); /* thin card border */
+  --ink: #1c1b19; /* primary text */
+  --ink-soft: #57534e; /* secondary text */
+  --ink-faint: #8a857d; /* tertiary / labels */
+  --accent: #1f5e44; /* deep-green accent */
+}
+.ed-page {
+  background: var(--bg-page);
+  color: var(--ink);
+}
+.ed-card {
+  background: var(--bg-card);
+  border: 1px solid var(--hairline);
+  border-radius: 16px;
+}
+.ed-soft {
+  color: var(--ink-soft);
+}
+.ed-faint {
+  color: var(--ink-faint);
+}
+.ed-accent {
+  color: var(--accent);
+}

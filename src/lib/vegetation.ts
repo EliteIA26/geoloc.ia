@@ -22,3 +22,19 @@ export const vegetationChipClass: Record<VegetationStatus, string> = {
   moderada: "bg-amber-100 text-amber-800 ring-amber-200",
   baja: "bg-red-100 text-red-800 ring-red-200",
 };
+
+// Plain-language status sentence for the editorial (insight-first) UI. The
+// digested phrase leads each item; the raw NDVI is demoted to muted secondary
+// evidence alongside it.
+export const vegetationSentence: Record<VegetationStatus, string> = {
+  saludable: "Vegetación saludable y vigorosa",
+  moderada: "Vegetación moderada y estable",
+  baja: "Vegetación escasa — posible estrés hídrico",
+};
+
+// Status dot color (editorial signal-style indicator) per vegetation status.
+export const vegetationDotClass: Record<VegetationStatus, string> = {
+  saludable: "bg-emerald-500",
+  moderada: "bg-amber-500",
+  baja: "bg-red-500",
+};

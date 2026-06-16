@@ -1,5 +1,15 @@
 import { describe, it, expect } from "vitest";
-import { frostRisk, heatRisk, waterDeficitRisk, ruleBasedRecommendation } from "./agroclimate";
+import {
+  frostRisk,
+  heatRisk,
+  waterDeficitRisk,
+  ruleBasedRecommendation,
+  fireRisk,
+  soilMoistureStatus,
+  growingDegreeDays,
+  applicationWindow,
+  rainDeficit,
+} from "./agroclimate";
 
 const fechas = ["2026-06-16", "2026-06-17", "2026-06-18"];
 
@@ -49,5 +59,43 @@ describe("ruleBasedRecommendation", () => {
       { tipo: "deficit_hidrico", nivel: "alto", dia: "esta semana", detalle: "x" },
     ]);
     expect(rec).toMatch(/rieg/i);
+  });
+});
+
+describe("fireRisk", () => {
+  it("null when not hot/dry/windy", () => {
+    expect(fireRisk([20, 22, 21], [10, 12, 11], [55, 60, 58], 30)).toBeNull();
+  });
+  it("alto when hot + windy + dry + low recent rain", () => {
+    const r = fireRisk([34, 36, 33], [35, 40, 30], [18, 15, 20], 1);
+    expect(r?.tipo).toBe("incendio");
+    expect(r?.nivel).toBe("alto");
+  });
+});
+
+describe("soilMoistureStatus", () => {
+  it("alerta when very dry soil", () => { expect(soilMoistureStatus(0.08).nivel).toBe("alerta"); });
+  it("ok when moist soil", () => { expect(soilMoistureStatus(0.30).nivel).toBe("ok"); });
+});
+
+describe("growingDegreeDays", () => {
+  it("accumulates degree-days above the base", () => {
+    // ((10+20)/2 - 10) + ((12+22)/2 -10) = 5 + 7 = 12
+    expect(growingDegreeDays([10, 12], [20, 22], 10).gdd).toBe(12);
+  });
+});
+
+describe("applicationWindow", () => {
+  it("lists low-wind days as good for spraying/irrigation", () => {
+    expect(applicationWindow([8, 28, 12], fechas)).toEqual(["2026-06-16", "2026-06-18"]);
+  });
+});
+
+describe("rainDeficit", () => {
+  it("alerta when far below normal", () => {
+    expect(rainDeficit(2, 40).nivel).toBe("alerta");
+  });
+  it("ok when near normal", () => {
+    expect(rainDeficit(38, 40).nivel).toBe("ok");
   });
 });
