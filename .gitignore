@@ -1,6 +1,9 @@
 # dependencies
 /node_modules
 
+# python (offline ndvi pipeline)
+.venv/
+
 # next.js
 /.next/
 /out/
