@@ -165,21 +165,21 @@ export default function PanelPage() {
     <div className="flex h-screen w-screen flex-col">
       <header className="flex items-center justify-between gap-4 bg-emerald-900 px-5 py-3 text-white shadow-md">
         <div className="min-w-0">
-          <div className="flex items-center gap-3">
-            <h1 className="truncate text-lg font-semibold">
-              Panel Territorial Agrícola · La Rioja
-            </h1>
-            <span className="hidden items-center gap-1.5 rounded-full bg-emerald-800/80 px-2.5 py-0.5 text-xs font-medium text-emerald-50 ring-1 ring-emerald-400/40 sm:inline-flex">
+          <h1 className="truncate text-lg font-semibold">
+            Panel Territorial Agrícola · La Rioja
+          </h1>
+          <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-800/80 px-2.5 py-0.5 text-xs font-medium text-emerald-50 ring-1 ring-emerald-400/40">
               <span className="relative flex h-1.5 w-1.5" aria-hidden>
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-300 opacity-75" />
                 <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-300" />
               </span>
               🛰 Sentinel-2 · última captura {capturaLabel}
             </span>
+            <p className="truncate text-xs font-light text-emerald-200">
+              Monitoreo satelital de salud de cultivos y estrés hídrico, por departamento
+            </p>
           </div>
-          <p className="mt-0.5 truncate text-xs font-light text-emerald-200">
-            Monitoreo satelital de salud de cultivos y estrés hídrico, por departamento
-          </p>
         </div>
         <div className="flex shrink-0 gap-1 rounded-lg bg-emerald-950 p-1 text-sm">
           <button
@@ -211,9 +211,6 @@ export default function PanelPage() {
             </div>
             <div className="absolute bottom-3 left-3 z-10">
               <MapLegend layer={layer} />
-            </div>
-            <div className="absolute bottom-3 right-3 z-10 rounded-md bg-black/70 px-2 py-1 text-xs text-white">
-              🛰 Sentinel-2 · captura {capturaLabel}
             </div>
           </div>
           <aside className="flex w-80 flex-col gap-4 overflow-y-auto border-l border-gray-200 bg-white p-4">
