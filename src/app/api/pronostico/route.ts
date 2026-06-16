@@ -31,7 +31,7 @@ export async function GET(request: Request) {
     const senales: Senal[] = [
       soilMoistureStatus(f.sueloFrac),
       rainDeficit(f.lluviaPrev30, 40),
-      { clave: "gdd", etiqueta: "Grados-día", valor: growingDegreeDays(tmin, tmax, crop === "olivo" ? 10 : 10).etiqueta, nivel: "neutro" },
+      { clave: "gdd", etiqueta: "Grados-día", valor: growingDegreeDays(tmin, tmax, 10).etiqueta, nivel: "neutro" },
     ];
     const ventana = applicationWindow(viento, fechas);
 
