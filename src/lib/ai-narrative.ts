@@ -46,3 +46,37 @@ export async function generateNarrative(
     return null;
   }
 }
+
+const SYSTEM_GOV =
+  "Sos asesor territorial para el gobierno de La Rioja, Argentina. Español rioplatense, claro y breve (2-3 frases). " +
+  "Usá ÚNICAMENTE los datos que te paso (no inventes). Decí qué priorizar esta semana y dónde, en lenguaje que un funcionario no técnico entienda.";
+
+export function buildTerritorialPrompt(deps: { nombre: string; riesgos: string[] }[]): string {
+  const enRiesgo = deps.filter((d) => d.riesgos.length);
+  const cuerpo = enRiesgo.length
+    ? enRiesgo.map((d) => `- ${d.nombre}: ${d.riesgos.join(", ")}`).join("\n")
+    : "Sin riesgos relevantes esta semana.";
+  return `Riesgos por departamento (próximos 7 días):\n${cuerpo}\n\nEscribí un resumen de gestión SOLO con lo anterior: qué priorizar y dónde.`;
+}
+
+export async function generateTerritorialResumen(
+  deps: { nombre: string; riesgos: string[] }[],
+  cacheKey: string,
+): Promise<string | null> {
+  if (cache.has(cacheKey)) return cache.get(cacheKey)!;
+  if (!process.env.ANTHROPIC_API_KEY) return null;
+  try {
+    const { text } = await generateText({
+      model: anthropic("claude-haiku-4-5-20251001"),
+      system: SYSTEM_GOV,
+      prompt: buildTerritorialPrompt(deps),
+      temperature: 0.4,
+      maxOutputTokens: 240,
+    });
+    const out = text.trim();
+    if (out) cache.set(cacheKey, out);
+    return out || null;
+  } catch {
+    return null;
+  }
+}
