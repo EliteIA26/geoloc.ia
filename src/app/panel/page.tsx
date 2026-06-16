@@ -26,6 +26,7 @@ type GeoJSONCollection = {
 export default function PanelPage() {
   const mapRef = useRef<maplibregl.Map | null>(null);
   const [layer, setLayer] = useState<LayerKey>("ndvi");
+  const [captura, setCaptura] = useState<string | null>(null);
 
   async function handleReady(map: maplibregl.Map) {
     mapRef.current = map;
@@ -55,6 +56,29 @@ export default function PanelPage() {
       source: "departamentos",
       paint: { "line-color": "#ffffff", "line-width": 1 },
     });
+
+    // Real Sentinel-2 NDVI snapshot over Aimogasta (defensive: skip if missing).
+    try {
+      const bounds = await fetch("/raster/aimogasta-ndvi-bounds.json").then((r) =>
+        r.ok ? r.json() : null,
+      );
+      if (bounds) {
+        map.addSource("aimogasta-ndvi", {
+          type: "image",
+          url: "/raster/aimogasta-ndvi.png",
+          coordinates: bounds.coordinates,
+        });
+        map.addLayer({
+          id: "aimogasta-ndvi",
+          type: "raster",
+          source: "aimogasta-ndvi",
+          paint: { "raster-opacity": 0.8 },
+        });
+        if (typeof bounds.captura === "string") setCaptura(bounds.captura);
+      }
+    } catch (e) {
+      console.warn("NDVI overlay skipped", e);
+    }
   }
 
   function handleToggle(k: LayerKey) {
@@ -76,6 +100,11 @@ export default function PanelPage() {
           <div className="absolute left-2 top-2 z-10">
             <LayerToggle active={layer} onChange={handleToggle} />
           </div>
+          {captura && (
+            <div className="absolute bottom-2 right-2 z-10 rounded bg-black/70 px-2 py-1 text-xs text-white">
+              Sentinel-2 · captura de {captura}
+            </div>
+          )}
         </div>
         <aside className="w-80 space-y-4 overflow-y-auto bg-white p-3">
           <AggregateIndicators />
