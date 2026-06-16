@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { ndviToColor } from "./colors";
+import { ndviToColor, ndwiToColor } from "./colors";
 
 describe("ndviToColor", () => {
   it("returns a red-ish hex for low NDVI (stressed)", () => {
@@ -14,5 +14,13 @@ describe("ndviToColor", () => {
   it("clamps out-of-range values", () => {
     expect(ndviToColor(-5)).toBe("#d73027");
     expect(ndviToColor(5)).toBe("#1a9850");
+  });
+});
+
+describe("ndwiToColor", () => {
+  it("delegates to ndviToColor (same ramp)", () => {
+    expect(ndwiToColor(0.1)).toBe("#d73027");
+    expect(ndwiToColor(0.45)).toBe("#fee08b");
+    expect(ndwiToColor(0.8)).toBe("#1a9850");
   });
 });
