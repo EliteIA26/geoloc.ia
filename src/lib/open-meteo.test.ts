@@ -85,4 +85,17 @@ describe("parseForecast (rich)", () => {
     expect(f.lluviaPrev30).toBe(3); // the one past day before the last 2
     expect(f.sueloFrac).toBeCloseTo(0.187, 2);
   });
+  it("tolerates null soil moisture / humidity (Open-Meteo nulls past the model horizon)", () => {
+    const rawNull = {
+      daily: raw.daily,
+      hourly: {
+        time: ["2026-06-16T06:00", "2026-06-16T15:00", "2026-06-17T06:00"],
+        relative_humidity_2m: [60, null, 70],
+        soil_moisture_3_to_9cm: [0.2, null, null],
+      },
+    };
+    const f = parseForecast(rawNull, 2);
+    expect(f.sueloFrac).toBeCloseTo(0.2, 2); // only the non-null value
+    expect(f.dias[0].humedadMin).toBe(60); // null hour skipped on 2026-06-16
+  });
 });

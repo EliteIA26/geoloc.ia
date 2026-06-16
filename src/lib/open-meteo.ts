@@ -36,14 +36,20 @@ const Schema = z.object({
     ),
   hourly: z.object({
     time: z.array(z.string()),
-    relative_humidity_2m: z.array(z.number()),
-    soil_moisture_3_to_9cm: z.array(z.number()),
+    // Open-Meteo returns null for hours beyond a variable's model horizon
+    // (soil moisture especially) — tolerate nulls and skip them in aggregation.
+    relative_humidity_2m: z.array(z.number().nullable()),
+    soil_moisture_3_to_9cm: z.array(z.number().nullable()),
   }),
 });
 
-export function dailyMinHumidity(hourTimes: string[], hum: number[], fechas: string[]): number[] {
+export function dailyMinHumidity(hourTimes: string[], hum: (number | null)[], fechas: string[]): number[] {
   return fechas.map((f) => {
-    const vals = hourTimes.map((t, i) => (t.startsWith(f) ? hum[i] : NaN)).filter((v) => !Number.isNaN(v));
+    const vals: number[] = [];
+    hourTimes.forEach((t, i) => {
+      const v = hum[i];
+      if (t.startsWith(f) && typeof v === "number") vals.push(v);
+    });
     return vals.length ? Math.min(...vals) : 50;
   });
 }
@@ -68,7 +74,7 @@ export function parseForecast(raw: unknown, forecastDays = 7): Forecast {
     };
   });
   const lluviaPrev30 = d.precipitation_sum.slice(0, start).reduce((a, b) => a + b, 0);
-  const soil = p.hourly.soil_moisture_3_to_9cm;
+  const soil = p.hourly.soil_moisture_3_to_9cm.filter((v): v is number => typeof v === "number");
   const sueloFrac = soil.length ? soil.reduce((a, b) => a + b, 0) / soil.length : 0.2;
   return { dias, sueloFrac, lluviaPrev30 };
 }
