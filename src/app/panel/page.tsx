@@ -1,12 +1,13 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import type maplibregl from "maplibre-gl";
 import MapShell from "@/components/map-shell";
 import LayerToggle, { type LayerKey } from "@/components/layer-toggle";
 import AggregateIndicators from "@/components/aggregate-indicators";
 import AlertsPanel from "@/components/alerts-panel";
 import ExportReportButton from "@/components/export-report-button";
+import ProducerView from "@/components/producer-view";
 import { ndviToColor, ndwiToColor } from "@/lib/colors";
 
 type GeoJSONFeature = {
@@ -27,8 +28,9 @@ export default function PanelPage() {
   const mapRef = useRef<maplibregl.Map | null>(null);
   const [layer, setLayer] = useState<LayerKey>("ndvi");
   const [captura, setCaptura] = useState<string | null>(null);
+  const [view, setView] = useState<"gestion" | "productor">("gestion");
 
-  async function handleReady(map: maplibregl.Map) {
+  const handleReady = useCallback(async (map: maplibregl.Map) => {
     mapRef.current = map;
     const gj = (await fetch("/data/departamentos.geojson").then((r) => r.json())) as GeoJSONCollection;
     for (const f of gj.features) {
@@ -79,7 +81,7 @@ export default function PanelPage() {
     } catch (e) {
       console.warn("NDVI overlay skipped", e);
     }
-  }
+  }, []);
 
   function handleToggle(k: LayerKey) {
     setLayer(k);
@@ -91,27 +93,53 @@ export default function PanelPage() {
 
   return (
     <div className="flex h-screen w-screen flex-col">
-      <header className="bg-emerald-900 px-4 py-3 text-white">
+      <header className="flex items-center justify-between bg-emerald-900 px-4 py-3 text-white">
         <h1 className="text-lg font-semibold">Panel Territorial Agrícola · La Rioja</h1>
-      </header>
-      <div className="flex flex-1 overflow-hidden">
-        <div className="relative flex-1">
-          <MapShell center={[-67.2, -29.4]} zoom={6.3} onReady={handleReady} />
-          <div className="absolute left-2 top-2 z-10">
-            <LayerToggle active={layer} onChange={handleToggle} />
-          </div>
-          {captura && (
-            <div className="absolute bottom-2 right-2 z-10 rounded bg-black/70 px-2 py-1 text-xs text-white">
-              Sentinel-2 · captura de {captura}
-            </div>
-          )}
+        <div className="flex gap-1 rounded bg-emerald-950 p-1 text-sm">
+          <button
+            type="button"
+            onClick={() => setView("gestion")}
+            className={`rounded px-3 py-1 font-medium transition-colors ${
+              view === "gestion" ? "bg-white text-emerald-900" : "text-emerald-100 hover:bg-emerald-800"
+            }`}
+          >
+            Gestión
+          </button>
+          <button
+            type="button"
+            onClick={() => setView("productor")}
+            className={`rounded px-3 py-1 font-medium transition-colors ${
+              view === "productor" ? "bg-white text-emerald-900" : "text-emerald-100 hover:bg-emerald-800"
+            }`}
+          >
+            Productor
+          </button>
         </div>
-        <aside className="w-80 space-y-4 overflow-y-auto bg-white p-3">
-          <AggregateIndicators />
-          <AlertsPanel />
-          <ExportReportButton />
-        </aside>
-      </div>
+      </header>
+      {view === "gestion" ? (
+        <div className="flex flex-1 overflow-hidden">
+          <div className="relative flex-1">
+            <MapShell center={[-67.2, -29.4]} zoom={6.3} onReady={handleReady} />
+            <div className="absolute left-2 top-2 z-10">
+              <LayerToggle active={layer} onChange={handleToggle} />
+            </div>
+            {captura && (
+              <div className="absolute bottom-2 right-2 z-10 rounded bg-black/70 px-2 py-1 text-xs text-white">
+                Sentinel-2 · captura de {captura}
+              </div>
+            )}
+          </div>
+          <aside className="w-80 space-y-4 overflow-y-auto bg-white p-3">
+            <AggregateIndicators />
+            <AlertsPanel />
+            <ExportReportButton />
+          </aside>
+        </div>
+      ) : (
+        <div className="flex-1 overflow-hidden">
+          <ProducerView />
+        </div>
+      )}
     </div>
   );
 }
