@@ -1,10 +1,5 @@
 import { z } from "zod";
 
-export const IndicadoresSchema = z.array(
-  z.object({ nombre: z.string(), areaEstresadaPct: z.number(), ndviMedio: z.number() }),
-);
-export type Indicador = z.infer<typeof IndicadoresSchema>[number];
-
 export const AlertasSchema = z.array(
   z.object({
     zona: z.string(),
