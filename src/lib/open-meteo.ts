@@ -4,13 +4,24 @@ export type DiaForecast = { fecha: string; tmin: number; tmax: number; lluvia: n
 export type Forecast = { dias: DiaForecast[] };
 
 const DailySchema = z.object({
-  daily: z.object({
-    time: z.array(z.string()),
-    temperature_2m_max: z.array(z.number()),
-    temperature_2m_min: z.array(z.number()),
-    precipitation_sum: z.array(z.number()),
-    et0_fao_evapotranspiration: z.array(z.number()),
-  }),
+  daily: z
+    .object({
+      time: z.array(z.string()),
+      temperature_2m_max: z.array(z.number()),
+      temperature_2m_min: z.array(z.number()),
+      precipitation_sum: z.array(z.number()),
+      et0_fao_evapotranspiration: z.array(z.number()),
+    })
+    .refine(
+      (d) =>
+        [
+          d.temperature_2m_max,
+          d.temperature_2m_min,
+          d.precipitation_sum,
+          d.et0_fao_evapotranspiration,
+        ].every((a) => a.length === d.time.length),
+      { message: "Open-Meteo daily arrays have mismatched lengths" },
+    ),
 });
 
 export function parseForecast(raw: unknown): Forecast {
