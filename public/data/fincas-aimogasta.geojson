@@ -1,0 +1,86 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "finca-aimogasta-1",
+        "nombre": "Finca El Olivo",
+        "ndvi": 0.61,
+        "esMiFinca": true
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-66.800, -28.055], [-66.785, -28.055],
+          [-66.785, -28.068], [-66.800, -28.068],
+          [-66.800, -28.055]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "finca-aimogasta-2",
+        "nombre": "Finca La Riojana Norte",
+        "ndvi": 0.54
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-66.775, -28.045], [-66.760, -28.045],
+          [-66.760, -28.058], [-66.775, -28.058],
+          [-66.775, -28.045]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "finca-aimogasta-3",
+        "nombre": "Finca Los Álamos",
+        "ndvi": 0.68
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-66.810, -28.070], [-66.795, -28.070],
+          [-66.795, -28.083], [-66.810, -28.083],
+          [-66.810, -28.070]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "finca-aimogasta-4",
+        "nombre": "Finca San Roque",
+        "ndvi": 0.42
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-66.755, -28.060], [-66.740, -28.060],
+          [-66.740, -28.073], [-66.755, -28.073],
+          [-66.755, -28.060]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "finca-aimogasta-5",
+        "nombre": "Finca Las Vertientes",
+        "ndvi": 0.59
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-66.820, -28.050], [-66.805, -28.050],
+          [-66.805, -28.063], [-66.820, -28.063],
+          [-66.820, -28.050]
+        ]]
+      }
+    }
+  ]
+}
