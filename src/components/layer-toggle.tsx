@@ -14,18 +14,25 @@ export default function LayerToggle({
     { key: "ndwi", label: "Estrés hídrico" },
   ];
   return (
-    <div className="inline-flex overflow-hidden rounded-md border border-emerald-700">
-      {opts.map((o) => (
-        <button
-          key={o.key}
-          onClick={() => onChange(o.key)}
-          className={`px-3 py-1 text-sm ${
-            active === o.key ? "bg-emerald-700 text-white" : "bg-white text-emerald-900"
-          }`}
-        >
-          {o.label}
-        </button>
-      ))}
+    <div className="inline-flex gap-1 rounded-lg border border-black/5 bg-white/90 p-1 shadow-md backdrop-blur-sm">
+      {opts.map((o) => {
+        const isActive = active === o.key;
+        return (
+          <button
+            key={o.key}
+            type="button"
+            onClick={() => onChange(o.key)}
+            aria-pressed={isActive}
+            className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+              isActive
+                ? "bg-emerald-700 text-white shadow-sm"
+                : "text-emerald-900 hover:bg-emerald-100"
+            }`}
+          >
+            {o.label}
+          </button>
+        );
+      })}
     </div>
   );
 }
