@@ -11,6 +11,8 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "^3.0.84",
+    "ai": "^6.0.206",
     "maplibre-gl": "^5.24.0",
     "next": "16.2.9",
     "react": "19.2.4",

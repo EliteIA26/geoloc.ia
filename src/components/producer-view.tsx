@@ -5,6 +5,7 @@ import type maplibregl from "maplibre-gl";
 import MapShell from "@/components/map-shell";
 import NdviTimeSeries from "@/components/ndvi-time-series";
 import WaterStressBadge from "@/components/water-stress-badge";
+import ForecastPanel from "@/components/forecast-panel";
 import { irrigationHint } from "@/lib/water-stress";
 import { fetchJson, SeriesSchema } from "@/lib/data";
 
@@ -68,6 +69,7 @@ export default function ProducerView() {
         </div>
         <NdviTimeSeries values={serie} />
         <p className="rounded bg-emerald-50 p-2 text-sm text-emerald-900">{irrigationHint(last)}</p>
+        <ForecastPanel lat={-27.823} lon={-66.785} ndvi={serie.at(-1) ?? 0.5} crop="olivo" />
       </aside>
     </div>
   );
