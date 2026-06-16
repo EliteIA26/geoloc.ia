@@ -10,9 +10,42 @@ import ExportReportButton from "@/components/export-report-button";
 import ProducerView from "@/components/producer-view";
 import MapLegend from "@/components/map-legend";
 import DepartmentDetail from "@/components/department-detail";
+import InsightHero, { type HeroChip } from "@/components/insight-hero";
 import { ndviToColor, ndwiToColor } from "@/lib/colors";
 import { fetchDepartamentos, type DepartamentoProps } from "@/lib/departamentos";
 import { fetchJson, SeriesSchema } from "@/lib/data";
+
+// Shape of /api/resumen-territorial (verified live).
+type ResumenTerritorial = {
+  resumen: string;
+  fuenteIA: boolean;
+  deptosEnRiesgo: { nombre: string; riesgos: string[] }[];
+  actualizado: string;
+};
+
+// Human label per risk type (keys match the API's RiesgoTipo strings).
+const RIESGO_LABEL: Record<string, string> = {
+  helada: "Helada",
+  deficit_hidrico: "Déficit hídrico",
+  calor: "Calor",
+  incendio: "Incendio",
+  sequia: "Sequía",
+};
+
+// Build hero chips by counting each risk type across all departments at risk,
+// e.g. "Incendio en 9 deptos". All territorial risks render as the "alerta" tone.
+function riesgoChips(deptos: ResumenTerritorial["deptosEnRiesgo"]): HeroChip[] {
+  const counts = new Map<string, number>();
+  for (const d of deptos) {
+    for (const r of d.riesgos) counts.set(r, (counts.get(r) ?? 0) + 1);
+  }
+  return [...counts.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .map(([tipo, n]) => ({
+      label: `${RIESGO_LABEL[tipo] ?? tipo} en ${n} ${n === 1 ? "depto" : "deptos"}`,
+      tone: "alerta" as const,
+    }));
+}
 
 type GeoJSONFeature = {
   properties: {
@@ -43,6 +76,21 @@ function formatCaptura(iso: string): string {
   return `${Number(d)} ${month} ${y}`;
 }
 
+// Short date/time for the resumen eyebrow + footer (es-AR). Defensive: returns
+// "" if the timestamp is unparseable so the label degrades gracefully.
+function fechaCorta(iso: string): string {
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime())
+    ? ""
+    : d.toLocaleDateString("es-AR", { day: "2-digit", month: "short" });
+}
+function horaCorta(iso: string): string {
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime())
+    ? ""
+    : d.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
+}
+
 export default function PanelPage() {
   const mapRef = useRef<maplibregl.Map | null>(null);
   const [layer, setLayer] = useState<LayerKey>("ndvi");
@@ -51,12 +99,34 @@ export default function PanelPage() {
   const [selected, setSelected] = useState<string | null>(null);
   const [deps, setDeps] = useState<DepartamentoProps[]>([]);
   const [serie, setSerie] = useState<number[]>([]);
+  const [resumen, setResumen] = useState<ResumenTerritorial | null>(null);
+  const [resumenEstado, setResumenEstado] = useState<"loading" | "ok" | "error">("loading");
 
   useEffect(() => {
     fetchDepartamentos().then(setDeps).catch(() => setDeps([]));
     fetchJson("/data/series-ndvi.json", SeriesSchema)
       .then((s) => setSerie(s["arauco"] ?? []))
       .catch(() => setSerie([]));
+  }, []);
+
+  // Territorial AI resumen for the Gestión hero. Fetched once on mount; the
+  // route is slow (18 cached weather calls) so we keep an explicit loading state.
+  useEffect(() => {
+    let alive = true;
+    setResumenEstado("loading");
+    fetch("/api/resumen-territorial")
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((j: ResumenTerritorial) => {
+        if (!alive) return;
+        setResumen(j);
+        setResumenEstado("ok");
+      })
+      .catch(() => {
+        if (alive) setResumenEstado("error");
+      });
+    return () => {
+      alive = false;
+    };
   }, []);
 
   const selectedDep = selected
@@ -162,31 +232,36 @@ export default function PanelPage() {
   const capturaLabel = captura ? formatCaptura(captura) : "24 may 2026";
 
   return (
-    <div className="flex h-screen w-screen flex-col">
-      <header className="flex items-center justify-between gap-4 bg-emerald-900 px-5 py-3 text-white shadow-md">
+    <div className="ed-page flex h-screen w-screen flex-col">
+      {/* Softened editorial bar: light surface, ink title with an accent mark. */}
+      <header className="flex items-center justify-between gap-4 border-b border-[var(--hairline)] bg-[var(--bg-card)] px-5 py-3">
         <div className="min-w-0">
-          <h1 className="truncate text-lg font-semibold">
-            Panel Territorial Agrícola · La Rioja
+          <h1 className="flex items-center gap-2 truncate text-lg text-[var(--ink)]">
+            <span className="inline-block h-4 w-1 rounded-full bg-[var(--accent)]" aria-hidden />
+            Panel Territorial Agrícola
+            <span className="ed-faint">· La Rioja</span>
           </h1>
           <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-800/80 px-2.5 py-0.5 text-xs font-medium text-emerald-50 ring-1 ring-emerald-400/40">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs text-emerald-800">
               <span className="relative flex h-1.5 w-1.5" aria-hidden>
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-300 opacity-75" />
-                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-300" />
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
               </span>
-              🛰 Sentinel-2 · última captura {capturaLabel}
+              Sentinel-2 · última captura {capturaLabel}
             </span>
-            <p className="truncate text-xs font-light text-emerald-200">
+            <p className="truncate text-xs ed-faint">
               Monitoreo satelital de salud de cultivos y estrés hídrico, por departamento
             </p>
           </div>
         </div>
-        <div className="flex shrink-0 gap-1 rounded-lg bg-emerald-950 p-1 text-sm">
+        <div className="flex shrink-0 gap-1 rounded-lg bg-stone-100 p-1 text-sm">
           <button
             type="button"
             onClick={() => setView("gestion")}
-            className={`rounded-md px-3 py-1 font-medium transition-colors ${
-              view === "gestion" ? "bg-white text-emerald-900" : "text-emerald-100 hover:bg-emerald-800"
+            className={`rounded-md px-3 py-1 transition-colors ${
+              view === "gestion"
+                ? "bg-[var(--bg-card)] text-[var(--ink)] shadow-sm"
+                : "ed-soft hover:text-[var(--ink)]"
             }`}
           >
             Gestión
@@ -194,8 +269,10 @@ export default function PanelPage() {
           <button
             type="button"
             onClick={() => setView("productor")}
-            className={`rounded-md px-3 py-1 font-medium transition-colors ${
-              view === "productor" ? "bg-white text-emerald-900" : "text-emerald-100 hover:bg-emerald-800"
+            className={`rounded-md px-3 py-1 transition-colors ${
+              view === "productor"
+                ? "bg-[var(--bg-card)] text-[var(--ink)] shadow-sm"
+                : "ed-soft hover:text-[var(--ink)]"
             }`}
           >
             Productor
@@ -213,7 +290,28 @@ export default function PanelPage() {
               <MapLegend layer={layer} />
             </div>
           </div>
-          <aside className="flex w-80 flex-col gap-4 overflow-y-auto border-l border-gray-200 bg-white p-4">
+          <aside className="ed-page flex w-80 flex-col gap-4 overflow-y-auto border-l border-[var(--hairline)] p-4">
+            {/* Insight first: the territorial resumen opens the view. */}
+            {resumenEstado === "loading" && (
+              <div className="ed-card p-5">
+                <div className="mb-2.5 text-xs ed-faint">Resumen de gestión · IA</div>
+                <p className="text-sm ed-faint">Analizando la provincia…</p>
+              </div>
+            )}
+            {resumenEstado === "error" && (
+              <div className="ed-card p-5">
+                <div className="mb-2.5 text-xs ed-faint">Resumen de gestión</div>
+                <p className="text-sm ed-soft">Resumen territorial no disponible ahora.</p>
+              </div>
+            )}
+            {resumenEstado === "ok" && resumen && (
+              <InsightHero
+                eyebrow={`Resumen de gestión · ${resumen.fuenteIA ? "IA" : "automático"} · ${fechaCorta(resumen.actualizado)}`}
+                titulo={resumen.resumen}
+                chips={riesgoChips(resumen.deptosEnRiesgo)}
+                footer={`Clima: Open-Meteo · ${resumen.fuenteIA ? "análisis: IA" : "resumen automático"} · actualizado ${horaCorta(resumen.actualizado)}`}
+              />
+            )}
             <DepartmentDetail
               dep={selectedDep}
               serie={serie}
