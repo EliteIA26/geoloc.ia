@@ -15,10 +15,10 @@ export default function AlertsPanel() {
     fetchJson("/data/alertas.json", AlertasSchema).then(setAlertas);
   }, []);
   return (
-    <div className="space-y-2">
+    <div className="space-y-2 border-t border-gray-200 pt-3">
       <h2 className="text-sm font-semibold text-emerald-900">Alertas por zona</h2>
       {alertas.map((a, i) => (
-        <div key={i} className={`rounded px-2 py-1 text-xs ${sevColor[a.severidad]}`}>
+        <div key={i} className={`rounded-lg px-2.5 py-1.5 text-xs ${sevColor[a.severidad]}`}>
           <strong className="capitalize">{a.tipo}</strong> · {a.zona}
           <div>{a.detalle}</div>
         </div>
