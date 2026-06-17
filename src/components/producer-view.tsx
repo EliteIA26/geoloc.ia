@@ -12,6 +12,8 @@ import { irrigationHint } from "@/lib/water-stress";
 import { fetchJson, SeriesSchema } from "@/lib/data";
 import type { Pronostico } from "@/lib/pronostico";
 import { RIESGO_LABEL } from "@/lib/agroclimate";
+import TrendBadge from "@/components/trend-badge";
+import { fetchSatelital, type Satelital } from "@/lib/satelital";
 
 type GeoJSONFeature = {
   properties: {
@@ -41,11 +43,16 @@ export default function ProducerView() {
   const [serie, setSerie] = useState<number[]>([]);
   const [data, setData] = useState<Pronostico | null>(null);
   const [estado, setEstado] = useState<"loading" | "ok" | "error">("loading");
+  const [sat, setSat] = useState<Satelital | null>(null);
 
   useEffect(() => {
     fetchJson("/data/series-ndvi.json", SeriesSchema)
       .then((s) => setSerie(s["finca-aimogasta-1"] ?? []))
       .catch(() => setSerie([]));
+  }, []);
+
+  useEffect(() => {
+    fetchSatelital().then(setSat);
   }, []);
 
   const last = serie.at(-1) ?? 0.5;
@@ -92,14 +99,24 @@ export default function ProducerView() {
     }
   }, []);
 
-  // Signals from the route. NOTE: NDMI ("Humedad vegetación") is intentionally
-  // omitted — the `ndmi-aimogasta` key is not yet in series-ndvi.json (deferred
-  // to Incremento 2). The grid simply shows the available signals.
-  const signals: Signal[] = (data?.senales ?? []).map((s) => ({
-    etiqueta: s.etiqueta,
-    valor: s.valor,
-    nivel: s.nivel,
-  }));
+  // Signals from the route + NDMI (vegetation moisture) from the satellite
+  // snapshot when available (Incremento 2). Both degrade gracefully if absent.
+  const signals: Signal[] = [
+    ...(data?.senales ?? []).map((s) => ({ etiqueta: s.etiqueta, valor: s.valor, nivel: s.nivel })),
+    ...(sat?.ndmiAimogasta != null
+      ? [
+          {
+            etiqueta: "Humedad vegetación (NDMI)",
+            valor: sat.ndmiAimogasta.toFixed(2),
+            nivel: (sat.ndmiAimogasta < 0.1
+              ? "alerta"
+              : sat.ndmiAimogasta < 0.2
+                ? "atencion"
+                : "ok") as Signal["nivel"],
+          },
+        ]
+      : []),
+  ];
 
   return (
     <div className="ed-page flex h-full">
@@ -113,6 +130,11 @@ export default function ProducerView() {
         <div>
           <p className="text-[11px] ed-faint">Productor</p>
           <h2 className="text-base text-[var(--ink)]">Mi finca · Aimogasta</h2>
+          {sat?.ndviTrend && (
+            <div className="mt-1.5">
+              <TrendBadge actual={sat.ndviTrend.actual} anterior={sat.ndviTrend.anterior} />
+            </div>
+          )}
         </div>
 
         {/* Insight first: the forecast recommendation opens the view. */}
