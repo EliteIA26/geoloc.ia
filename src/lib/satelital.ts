@@ -39,3 +39,19 @@ export async function fetchSatelital(): Promise<Satelital | null> {
     return null;
   }
 }
+
+export const ProvinciaNdviSchema = z.object({
+  fecha: z.string(),
+  deptos: z.record(z.string(), z.number()),
+});
+export type ProvinciaNdvi = z.infer<typeof ProvinciaNdviSchema>;
+
+export async function fetchProvinciaNdvi(): Promise<ProvinciaNdvi | null> {
+  try {
+    const res = await fetch("/data/provincia-ndvi.json");
+    if (!res.ok) return null;
+    return ProvinciaNdviSchema.parse(await res.json());
+  } catch {
+    return null;
+  }
+}

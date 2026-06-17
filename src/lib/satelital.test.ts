@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { ndviTrend, snowCoverStatus, SatelitalSchema } from "./satelital";
+import { ndviTrend, snowCoverStatus, SatelitalSchema, ProvinciaNdviSchema } from "./satelital";
 
 describe("ndviTrend", () => {
   it("mejoró when current is clearly higher", () => {
@@ -36,5 +36,12 @@ describe("SatelitalSchema", () => {
   it("accepts a partial payload (all keys optional)", () => {
     expect(() => SatelitalSchema.parse({ nieve: { cobertura: 10, fecha: "2026-06-10", region: "x" } })).not.toThrow();
     expect(() => SatelitalSchema.parse({})).not.toThrow();
+  });
+});
+
+describe("ProvinciaNdviSchema", () => {
+  it("parses fecha + per-department means", () => {
+    const v = ProvinciaNdviSchema.parse({ fecha: "2026-06-17", deptos: { Arauco: 0.42, Capital: 0.31 } });
+    expect(v.deptos.Arauco).toBe(0.42);
   });
 });
