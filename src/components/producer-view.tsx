@@ -13,6 +13,7 @@ import { fetchJson, SeriesSchema } from "@/lib/data";
 import type { Pronostico } from "@/lib/pronostico";
 import { RIESGO_LABEL } from "@/lib/agroclimate";
 import TrendBadge from "@/components/trend-badge";
+import ResizableAside from "@/components/resizable-aside";
 import { fetchSatelital, type Satelital } from "@/lib/satelital";
 
 type GeoJSONFeature = {
@@ -126,7 +127,7 @@ export default function ProducerView() {
         </div>
         <MapShell center={[-66.77, -27.83]} zoom={12.5} onReady={addFincaLayers} />
       </div>
-      <aside className="ed-page w-80 space-y-4 overflow-y-auto border-l border-[var(--hairline)] p-4">
+      <ResizableAside>
         <div>
           <p className="text-[11px] ed-faint">Productor</p>
           <h2 className="text-base text-[var(--ink)]">Mi finca · Aimogasta</h2>
@@ -171,7 +172,7 @@ export default function ProducerView() {
         </div>
 
         <ForecastPanel data={data} estado={estado} />
-      </aside>
+      </ResizableAside>
     </div>
   );
 }

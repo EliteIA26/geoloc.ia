@@ -17,6 +17,7 @@ import { fetchJson, SeriesSchema } from "@/lib/data";
 import { RIESGO_LABEL, type RiesgoTipo } from "@/lib/agroclimate";
 import TrendBadge from "@/components/trend-badge";
 import { fetchSatelital, snowCoverStatus, type Satelital } from "@/lib/satelital";
+import ResizableAside from "@/components/resizable-aside";
 
 // Shape of /api/resumen-territorial (verified live).
 type ResumenTerritorial = {
