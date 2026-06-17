@@ -1,4 +1,5 @@
-"""Produce a real Sentinel-2 NDVI snapshot over Aimogasta (La Rioja, Argentina).
+"""Produce a real Sentinel-2 NDVI snapshot over Aimogasta (La Rioja, Argentina),
+plus an NDMI moisture mean and an NDVI trend (current vs. ~1-month-older scene).
 
 Pipeline:
   1. Query Microsoft Planetary Computer STAC for the most recent low-cloud
@@ -10,26 +11,30 @@ Pipeline:
   4. Colorize: red < 0.4, yellow 0.4-0.6, green >= 0.6 (alpha ~180),
      transparent where there is no data.
   5. Export a georeferenced RGBA PNG + a bounds JSON in EPSG:4326.
+  6. NDMI = (B08 - B11) / (B08 + B11) on the same current scene -> mean.
+  7. NDVI trend: pick an older scene (>= ~28 days before current), compute its
+     NDVI mean, and write {actual, anterior, fechaAnterior} to satelital.json.
 
 Outputs:
   public/raster/aimogasta-ndvi.png
   public/raster/aimogasta-ndvi-bounds.json
+  public/data/satelital.json  (keys: ndmiAimogasta, ndviTrend)
 
 Run:  python scripts/ndvi_snapshot.py
 """
 
 import json
 import os
+import sys
 import tempfile
+from datetime import timedelta
 
 import numpy as np
-import planetary_computer
 import rasterio
-import requests
-from rasterio.enums import Resampling
-from rasterio.warp import reproject
-from pystac_client import Client
 from PIL import Image
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import s2_common as s2
 
 # Aimogasta (Arauco) bbox: [west, south, east, north] in EPSG:4326.
 # Centered on the real irrigated olive-grove belt of the Arauco valley
@@ -43,15 +48,7 @@ W, S, E, N = BBOX
 MGRS_TILE = "19JGK"
 
 # Output resolution in degrees (~10 m at this latitude is ~9e-5 deg).
-DST_RES = 0.0001  # ~11 m/px -> sharp enough, keeps PNG small
-
-# Sentinel-2 L2A scaling. Processing baseline >= 04.00 stores surface
-# reflectance with a quantification value of 10000 and an additive offset of
-# -1000 (BOA_ADD_OFFSET). True reflectance = (DN + BOA_ADD_OFFSET) / 10000.
-# NDVI must be computed on offset-corrected values, otherwise vegetated
-# pixels are biased low. (This scene is baseline 05.12.)
-BOA_ADD_OFFSET = -1000.0
-QUANTIFICATION = 10000.0
+DST_RES = s2.DST_RES  # ~11 m/px -> sharp enough, keeps PNG small
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
@@ -61,18 +58,7 @@ BOUNDS_PATH = os.path.join(OUT_DIR, "aimogasta-ndvi-bounds.json")
 
 
 def find_scene():
-    catalog = Client.open(
-        "https://planetarycomputer.microsoft.com/api/stac/v1",
-        modifier=planetary_computer.sign_inplace,
-    )
-    search = catalog.search(
-        collections=["sentinel-2-l2a"],
-        bbox=BBOX,
-        query={"eo:cloud_cover": {"lt": 10}, "s2:mgrs_tile": {"eq": MGRS_TILE}},
-        sortby=[{"field": "properties.datetime", "direction": "desc"}],
-        limit=10,
-    )
-    items = list(search.items())
+    items = s2.find_scenes(BBOX, mgrs_tile=MGRS_TILE, max_cloud=10, limit=10)
     if not items:
         raise SystemExit("No Sentinel-2 L2A scenes found for the Aimogasta bbox.")
     item = items[0]
@@ -80,52 +66,6 @@ def find_scene():
     print(f"  datetime:    {item.datetime}")
     print(f"  cloud_cover: {item.properties.get('eo:cloud_cover')}")
     return item
-
-
-def download_asset(href, dst_path):
-    """Download a remote COG to a local (ASCII-path) file.
-
-    GDAL's /vsicurl/ reader crashes in its error logger when the OS emits a
-    localized (non-UTF8) message on this Windows host, so we fetch the band
-    over plain HTTPS and let rasterio read a local file instead.
-    """
-    with requests.get(href, stream=True, timeout=300) as r:
-        r.raise_for_status()
-        total = 0
-        with open(dst_path, "wb") as f:
-            for chunk in r.iter_content(chunk_size=1024 * 1024):
-                if chunk:
-                    f.write(chunk)
-                    total += len(chunk)
-    print(f"  downloaded {total / 1e6:.1f} MB -> {dst_path}")
-    return dst_path
-
-
-def read_band_to_4326(local_path):
-    """Read a local UTM band and reproject/crop it to EPSG:4326 over the bbox.
-
-    Returns (data float32, dst_transform, width, height).
-    """
-    dst_crs = "EPSG:4326"
-    # Destination grid: fixed bbox at DST_RES resolution.
-    width = int(round((E - W) / DST_RES))
-    height = int(round((N - S) / DST_RES))
-    dst_transform = rasterio.transform.from_bounds(W, S, E, N, width, height)
-
-    with rasterio.open(local_path) as src:
-        dst = np.full((height, width), np.nan, dtype="float32")
-        reproject(
-            source=rasterio.band(src, 1),
-            destination=dst,
-            src_transform=src.transform,
-            src_crs=src.crs,
-            dst_transform=dst_transform,
-            dst_crs=dst_crs,
-            resampling=Resampling.bilinear,
-            src_nodata=0,
-            dst_nodata=np.nan,
-        )
-    return dst, dst_transform, width, height
 
 
 def colorize_ndvi(ndvi):
@@ -152,22 +92,64 @@ def main():
 
     red_href = item.assets["B04"].href
     nir_href = item.assets["B08"].href
+    swir_href = item.assets["B11"].href
 
-    # Download to a local ASCII-path temp dir, then read locally.
+    # Destination grid (fixed bbox at DST_RES) — used for the bounds JSON.
+    width = int(round((E - W) / DST_RES))
+    height = int(round((N - S) / DST_RES))
+    transform = rasterio.transform.from_bounds(W, S, E, N, width, height)
+
+    # Download all needed bands (current scene + older scene) to a local
+    # ASCII-path temp dir BEFORE cleanup, then read locally.
     tmpdir = tempfile.mkdtemp(prefix="ndvi_", dir="C:/Temp" if os.path.isdir("C:/Temp") else None)
+    tmp_files = []
+
+    # --- NDVI trend: find an older scene (>= ~28 days before current) ---
+    cur_dt = item.datetime
+    older = next(
+        (it for it in s2.find_scenes(BBOX, MGRS_TILE, max_cloud=15, limit=30)
+         if (cur_dt - it.datetime) >= timedelta(days=28)),
+        None,
+    )
+
     try:
         print("Downloading B04 (red) ...")
-        red_local = download_asset(red_href, os.path.join(tmpdir, "B04.tif"))
+        red_local = s2.download_asset(red_href, os.path.join(tmpdir, "B04.tif"))
+        tmp_files.append(red_local)
         print("Downloading B08 (nir) ...")
-        nir_local = download_asset(nir_href, os.path.join(tmpdir, "B08.tif"))
+        nir_local = s2.download_asset(nir_href, os.path.join(tmpdir, "B08.tif"))
+        tmp_files.append(nir_local)
+        print("Downloading B11 (swir) ...")
+        swir_local = s2.download_asset(swir_href, os.path.join(tmpdir, "B11.tif"))
+        tmp_files.append(swir_local)
+
+        o_red_local = o_nir_local = None
+        if older is not None:
+            print(f"Older scene for trend: {older.id}  {older.datetime}  "
+                  f"cloud={older.properties.get('eo:cloud_cover')}")
+            print("Downloading older B04 ...")
+            o_red_local = s2.download_asset(older.assets["B04"].href, os.path.join(tmpdir, "oB04.tif"))
+            tmp_files.append(o_red_local)
+            print("Downloading older B08 ...")
+            o_nir_local = s2.download_asset(older.assets["B08"].href, os.path.join(tmpdir, "oB08.tif"))
+            tmp_files.append(o_nir_local)
+        else:
+            print("No older scene (>=28 days) found within search window; trend skipped.")
 
         print("Reprojecting B04 (red) -> EPSG:4326 ...")
-        red, transform, width, height = read_band_to_4326(red_local)
+        red = s2.read_band_to_4326(red_local, BBOX)
         print("Reprojecting B08 (nir) -> EPSG:4326 ...")
-        nir, _, _, _ = read_band_to_4326(nir_local)
+        nir = s2.read_band_to_4326(nir_local, BBOX)
+        print("Reprojecting B11 (swir) -> EPSG:4326 ...")
+        swir = s2.read_band_to_4326(swir_local, BBOX)
+
+        o_red = o_nir = None
+        if o_red_local is not None:
+            print("Reprojecting older B04/B08 -> EPSG:4326 ...")
+            o_red = s2.read_band_to_4326(o_red_local, BBOX)
+            o_nir = s2.read_band_to_4326(o_nir_local, BBOX)
     finally:
-        for fn in ("B04.tif", "B08.tif"):
-            p = os.path.join(tmpdir, fn)
+        for p in tmp_files:
             if os.path.exists(p):
                 try:
                     os.remove(p)
@@ -180,8 +162,8 @@ def main():
 
     # Convert raw DN -> surface reflectance (apply BOA additive offset).
     # NaN (nodata) propagates through the arithmetic.
-    red_r = (red + BOA_ADD_OFFSET) / QUANTIFICATION
-    nir_r = (nir + BOA_ADD_OFFSET) / QUANTIFICATION
+    red_r = s2.to_reflectance(red)
+    nir_r = s2.to_reflectance(nir)
 
     # NDVI on offset-corrected reflectance.
     denom = nir_r + red_r
@@ -234,6 +216,38 @@ def main():
     cls_yellow = int((valid & (ndvi >= 0.4) & (ndvi < 0.6)).sum())
     cls_green = int((valid & (ndvi >= 0.6)).sum())
     print(f"Classes  red={cls_red}  yellow={cls_yellow}  green={cls_green}")
+
+    # --- NDMI on the SAME current scene: (B08 - B11) / (B08 + B11) ---
+    swir_r = s2.to_reflectance(swir)
+    with np.errstate(divide="ignore", invalid="ignore"):
+        ndmi = (nir_r - swir_r) / (nir_r + swir_r)
+    ndmi_finite = ndmi[np.isfinite(ndmi)]
+    if ndmi_finite.size == 0:
+        raise SystemExit("No valid NDMI pixels - SWIR band did not cover the bbox.")
+    ndmi_mean = float(np.nanmean(ndmi_finite))
+    print(f"NDMI mean: {ndmi_mean:.3f}")
+
+    # --- NDVI trend (older scene already reprojected above) ---
+    ndvi_trend = None
+    if o_red is not None and o_nir is not None:
+        o_red_r, o_nir_r = s2.to_reflectance(o_red), s2.to_reflectance(o_nir)
+        with np.errstate(divide="ignore", invalid="ignore"):
+            o_ndvi = (o_nir_r - o_red_r) / (o_nir_r + o_red_r)
+        o_finite = o_ndvi[np.isfinite(o_ndvi)]
+        if o_finite.size > 0:
+            ndvi_trend = {
+                "actual": round(vmean, 3),
+                "anterior": round(float(np.nanmean(o_finite)), 3),
+                "fechaAnterior": older.datetime.strftime("%Y-%m-%d"),
+            }
+            print(f"NDVI trend: {ndvi_trend}")
+        else:
+            print("Older scene had no valid NDVI pixels; trend skipped.")
+
+    s2.merge_satelital({
+        "ndmiAimogasta": round(ndmi_mean, 3),
+        **({"ndviTrend": ndvi_trend} if ndvi_trend else {}),
+    })
 
 
 if __name__ == "__main__":

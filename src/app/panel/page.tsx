@@ -15,6 +15,8 @@ import { ndviToColor, ndwiToColor } from "@/lib/colors";
 import { fetchDepartamentos, type DepartamentoProps } from "@/lib/departamentos";
 import { fetchJson, SeriesSchema } from "@/lib/data";
 import { RIESGO_LABEL, type RiesgoTipo } from "@/lib/agroclimate";
+import TrendBadge from "@/components/trend-badge";
+import { fetchSatelital, snowCoverStatus, type Satelital } from "@/lib/satelital";
 
 // Shape of /api/resumen-territorial (verified live).
 type ResumenTerritorial = {
@@ -93,6 +95,7 @@ export default function PanelPage() {
   const [serie, setSerie] = useState<number[]>([]);
   const [resumen, setResumen] = useState<ResumenTerritorial | null>(null);
   const [resumenEstado, setResumenEstado] = useState<"loading" | "ok" | "error">("loading");
+  const [sat, setSat] = useState<Satelital | null>(null);
 
   useEffect(() => {
     fetchDepartamentos().then(setDeps).catch(() => setDeps([]));
@@ -118,6 +121,10 @@ export default function PanelPage() {
     return () => {
       alive = false;
     };
+  }, []);
+
+  useEffect(() => {
+    fetchSatelital().then(setSat);
   }, []);
 
   const selectedDep = selected
@@ -303,11 +310,36 @@ export default function PanelPage() {
                 footer={`Clima: Open-Meteo · ${resumen.fuenteIA ? "análisis: IA" : "resumen automático"} · actualizado ${horaCorta(resumen.actualizado)}`}
               />
             )}
+            {sat?.nieve && (
+              <div className="ed-card p-4">
+                <div className="mb-1 text-xs ed-faint">Reserva hídrica de montaña</div>
+                <div className="flex items-baseline gap-2">
+                  <span
+                    className={`inline-block h-2 w-2 rounded-full ${
+                      snowCoverStatus(sat.nieve.cobertura).nivel === "alerta"
+                        ? "bg-red-500"
+                        : snowCoverStatus(sat.nieve.cobertura).nivel === "atencion"
+                          ? "bg-amber-500"
+                          : "bg-emerald-500"
+                    }`}
+                  />
+                  <span className="text-lg text-[var(--ink)]">
+                    Nieve en la cordillera: {snowCoverStatus(sat.nieve.cobertura).valor}
+                  </span>
+                </div>
+                <div className="mt-1 text-[11px] ed-faint">
+                  {sat.nieve.region} · captura {sat.nieve.fecha}
+                </div>
+              </div>
+            )}
             <DepartmentDetail
               dep={selectedDep}
               serie={serie}
               onClear={() => setSelected(null)}
             />
+            {selected === "Arauco" && sat?.ndviTrend && (
+              <TrendBadge actual={sat.ndviTrend.actual} anterior={sat.ndviTrend.anterior} />
+            )}
             <AggregateIndicators selected={selected} onSelect={setSelected} />
             <AlertsPanel />
             <ExportReportButton />
