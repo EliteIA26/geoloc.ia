@@ -14,6 +14,7 @@ import InsightHero, { type HeroChip } from "@/components/insight-hero";
 import { ndviToColor, ndwiToColor } from "@/lib/colors";
 import { fetchDepartamentos, type DepartamentoProps } from "@/lib/departamentos";
 import { fetchJson, SeriesSchema } from "@/lib/data";
+import { RIESGO_LABEL, type RiesgoTipo } from "@/lib/agroclimate";
 
 // Shape of /api/resumen-territorial (verified live).
 type ResumenTerritorial = {
@@ -21,15 +22,6 @@ type ResumenTerritorial = {
   fuenteIA: boolean;
   deptosEnRiesgo: { nombre: string; riesgos: string[] }[];
   actualizado: string;
-};
-
-// Human label per risk type (keys match the API's RiesgoTipo strings).
-const RIESGO_LABEL: Record<string, string> = {
-  helada: "Helada",
-  deficit_hidrico: "Déficit hídrico",
-  calor: "Calor",
-  incendio: "Incendio",
-  sequia: "Sequía",
 };
 
 // Build hero chips by counting each risk type across all departments at risk,
@@ -42,7 +34,7 @@ function riesgoChips(deptos: ResumenTerritorial["deptosEnRiesgo"]): HeroChip[] {
   return [...counts.entries()]
     .sort((a, b) => b[1] - a[1])
     .map(([tipo, n]) => ({
-      label: `${RIESGO_LABEL[tipo] ?? tipo} en ${n} ${n === 1 ? "depto" : "deptos"}`,
+      label: `${RIESGO_LABEL[tipo as RiesgoTipo] ?? tipo} en ${n} ${n === 1 ? "depto" : "deptos"}`,
       tone: "alerta" as const,
     }));
 }
@@ -113,7 +105,6 @@ export default function PanelPage() {
   // route is slow (18 cached weather calls) so we keep an explicit loading state.
   useEffect(() => {
     let alive = true;
-    setResumenEstado("loading");
     fetch("/api/resumen-territorial")
       .then((r) => (r.ok ? r.json() : Promise.reject()))
       .then((j: ResumenTerritorial) => {

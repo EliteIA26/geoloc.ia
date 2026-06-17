@@ -1,8 +1,16 @@
 export type Crop = "olivo" | "vid";
-export type RiesgoTipo = "helada" | "deficit_hidrico" | "calor" | "incendio" | "sequia";
+export type RiesgoTipo = "helada" | "deficit_hidrico" | "calor" | "incendio";
 export type Nivel = "bajo" | "medio" | "alto";
 export type Riesgo = { tipo: RiesgoTipo; nivel: Nivel; dia: string; detalle: string };
 export type Senal = { clave: string; etiqueta: string; valor: string; nivel: "ok" | "atencion" | "alerta" | "neutro" };
+
+// Human label per risk type — single source of truth (used by all views).
+export const RIESGO_LABEL: Record<RiesgoTipo, string> = {
+  helada: "Helada",
+  deficit_hidrico: "Déficit hídrico",
+  calor: "Calor",
+  incendio: "Incendio",
+};
 
 // Demo defaults — require agronomic calibration (INTA) before production use.
 const FROST_C: Record<Crop, { medio: number; alto: number }> = {
@@ -62,7 +70,6 @@ const TXT: Record<RiesgoTipo, string> = {
   deficit_hidrico: "programá riego",
   calor: "reforzá riego por el calor",
   incendio: "extremá precauciones por riesgo de incendio",
-  sequia: "monitoreá la sequía y priorizá el riego",
 };
 
 export function ruleBasedRecommendation(riesgos: Riesgo[]): string {

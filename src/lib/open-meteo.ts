@@ -20,7 +20,6 @@ const Schema = z.object({
       precipitation_sum: z.array(z.number()),
       et0_fao_evapotranspiration: z.array(z.number()),
       wind_speed_10m_max: z.array(z.number()),
-      wind_gusts_10m_max: z.array(z.number()),
     })
     .refine(
       (d) =>
@@ -30,7 +29,6 @@ const Schema = z.object({
           d.precipitation_sum,
           d.et0_fao_evapotranspiration,
           d.wind_speed_10m_max,
-          d.wind_gusts_10m_max,
         ].every((a) => a.length === d.time.length),
       { message: "Open-Meteo daily arrays have mismatched lengths" },
     ),
@@ -83,7 +81,7 @@ export function parseForecast(raw: unknown, forecastDays = 7): Forecast {
 export async function fetchForecast(lat: number, lon: number): Promise<Forecast> {
   const url =
     `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
-    `&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,et0_fao_evapotranspiration,wind_speed_10m_max,wind_gusts_10m_max` +
+    `&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,et0_fao_evapotranspiration,wind_speed_10m_max` +
     `&hourly=relative_humidity_2m,soil_moisture_3_to_9cm` +
     `&past_days=30&forecast_days=7&timezone=auto`;
   const res = await fetch(url, { next: { revalidate: 10800 } });
