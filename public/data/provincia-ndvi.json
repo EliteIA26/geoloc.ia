@@ -1,0 +1,23 @@
+{
+  "fecha": "2026-05-25",
+  "deptos": {
+    "Arauco": 0.191,
+    "Chilecito": 0.275,
+    "Famatina": 0.241,
+    "Castro Barros": 0.304,
+    "Capital": 0.491,
+    "Sanagasta": 0.331,
+    "San Blas de Los Sauces": 0.285,
+    "Chamical": 0.498,
+    "General Ortiz de Ocampo": 0.621,
+    "General Belgrano": 0.574,
+    "General Felipe Varela": 0.214,
+    "Rosario Vera Peñaloza": 0.493,
+    "Ángel Vicente Peñaloza": 0.467,
+    "General San Martín": 0.552,
+    "General Juan Facundo Quiroga": 0.449,
+    "Independencia": 0.365,
+    "Vinchina": 0.153,
+    "General Lamadrid": 0.146
+  }
+}
