@@ -3,10 +3,19 @@ import { anthropic } from "@ai-sdk/anthropic";
 import type { Forecast } from "./open-meteo";
 import type { Crop, Riesgo } from "./agroclimate";
 
+export function stripMarkdown(s: string): string {
+  return s
+    .replace(/[*_`#>]/g, " ")        // markdown emphasis/heading/code/quote marks
+    .replace(/^\s*[-•]\s*/gm, " ")    // bullet markers
+    .replace(/\s+/g, " ")             // collapse whitespace
+    .trim();
+}
+
 const SYSTEM =
   "Sos un asesor agronómico para La Rioja, Argentina. Redactás en español rioplatense, claro y breve (2-3 frases). " +
   "Usá ÚNICAMENTE los datos que te paso (no inventes temperaturas, fechas ni cifras). " +
-  "Dirigite al productor con recomendaciones accionables y concretas para los próximos días.";
+  "Dirigite al productor con recomendaciones accionables y concretas para los próximos días." +
+  " Respondé en texto plano: sin markdown, sin asteriscos (*) ni almohadillas (#) ni viñetas.";
 
 export function buildNarrativePrompt(f: Forecast, riesgos: Riesgo[], crop: Crop): string {
   const dias = f.dias
@@ -39,7 +48,7 @@ export async function generateNarrative(
       temperature: 0.4,
       maxOutputTokens: 220,
     });
-    const out = text.trim();
+    const out = stripMarkdown(text);
     if (out) cache.set(cacheKey, out);
     return out || null;
   } catch {
@@ -49,7 +58,8 @@ export async function generateNarrative(
 
 const SYSTEM_GOV =
   "Sos asesor territorial para el gobierno de La Rioja, Argentina. Español rioplatense, claro y breve (2-3 frases). " +
-  "Usá ÚNICAMENTE los datos que te paso (no inventes). Decí qué priorizar esta semana y dónde, en lenguaje que un funcionario no técnico entienda.";
+  "Usá ÚNICAMENTE los datos que te paso (no inventes). Decí qué priorizar esta semana y dónde, en lenguaje que un funcionario no técnico entienda." +
+  " Respondé en texto plano: sin markdown, sin asteriscos (*) ni almohadillas (#) ni viñetas.";
 
 export function buildTerritorialPrompt(deps: { nombre: string; riesgos: string[] }[]): string {
   const enRiesgo = deps.filter((d) => d.riesgos.length);
@@ -73,7 +83,7 @@ export async function generateTerritorialResumen(
       temperature: 0.4,
       maxOutputTokens: 240,
     });
-    const out = text.trim();
+    const out = stripMarkdown(text);
     if (out) cache.set(cacheKey, out);
     return out || null;
   } catch {

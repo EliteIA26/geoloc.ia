@@ -1,0 +1,33 @@
+name: Actualizar capas satelitales
+on:
+  schedule:
+    - cron: "0 9 * * *"   # daily 09:00 UTC
+  workflow_dispatch: {}
+permissions:
+  contents: write
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install deps
+        run: pip install rasterio pystac-client planetary-computer numpy pillow requests
+      - name: Run pipeline
+        run: |
+          python scripts/ndvi_snapshot.py
+          python scripts/snow_snapshot.py
+          python scripts/modis_ndvi.py
+      - name: Commit if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add public/data public/raster
+          if git diff --staged --quiet; then
+            echo "No changes."
+          else
+            git commit -m "chore: refresh satellite layers [skip ci]"
+            git push
+          fi

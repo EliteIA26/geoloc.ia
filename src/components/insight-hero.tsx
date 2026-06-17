@@ -30,7 +30,7 @@ export default function InsightHero({
   return (
     <div className="ed-card p-5">
       <div className="mb-2.5 text-xs ed-faint">{eyebrow}</div>
-      <p className="m-0 text-[20px] leading-relaxed text-[var(--ink)]">{titulo}</p>
+      <p className="m-0 text-[16px] leading-relaxed text-[var(--ink)]">{titulo}</p>
       {chips.length > 0 && (
         <div className="mt-3.5 flex flex-wrap gap-2">
           {chips.map((c, i) => (
