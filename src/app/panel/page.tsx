@@ -309,7 +309,7 @@ export default function PanelPage() {
               <MapLegend layer={layer} />
             </div>
           </div>
-          <aside className="ed-page flex w-80 flex-col gap-4 overflow-y-auto border-l border-[var(--hairline)] p-4">
+          <ResizableAside>
             {/* Insight first: the territorial resumen opens the view. */}
             {resumenEstado === "loading" && (
               <div className="ed-card p-5">
@@ -365,7 +365,7 @@ export default function PanelPage() {
             <AggregateIndicators selected={selected} onSelect={setSelected} prov={prov} />
             <AlertsPanel />
             <ExportReportButton />
-          </aside>
+          </ResizableAside>
         </div>
       ) : (
         <div className="flex-1 overflow-hidden">
