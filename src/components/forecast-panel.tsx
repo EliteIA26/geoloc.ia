@@ -1,14 +1,7 @@
 "use client";
 
 import type { Pronostico } from "@/lib/pronostico";
-
-const RIESGO_LABEL: Record<Pronostico["riesgos"][number]["tipo"], string> = {
-  helada: "Helada",
-  deficit_hidrico: "Déficit hídrico",
-  calor: "Calor",
-  incendio: "Incendio",
-  sequia: "Sequía",
-};
+import { RIESGO_LABEL } from "@/lib/agroclimate";
 
 // Editorial risk-badge tones (calm, flat — no heavy color blocks).
 const NIVEL_CLASS: Record<Pronostico["riesgos"][number]["nivel"], string> = {

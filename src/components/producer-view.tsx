@@ -11,6 +11,7 @@ import SignalGrid, { type Signal } from "@/components/signal-grid";
 import { irrigationHint } from "@/lib/water-stress";
 import { fetchJson, SeriesSchema } from "@/lib/data";
 import type { Pronostico } from "@/lib/pronostico";
+import { RIESGO_LABEL } from "@/lib/agroclimate";
 
 type GeoJSONFeature = {
   properties: {
@@ -23,14 +24,6 @@ type GeoJSONFeature = {
 
 type GeoJSONCollection = {
   features: GeoJSONFeature[];
-};
-
-const RIESGO_LABEL: Record<Pronostico["riesgos"][number]["tipo"], string> = {
-  helada: "Helada",
-  deficit_hidrico: "Déficit hídrico",
-  calor: "Calor",
-  incendio: "Incendio",
-  sequia: "Sequía",
 };
 
 // Active risks become hero chips: alto -> alerta tone, medio/bajo -> atencion.
@@ -61,7 +54,6 @@ export default function ProducerView() {
   // panel. Re-runs when the latest NDVI changes (affects the water-deficit risk).
   useEffect(() => {
     let alive = true;
-    setEstado("loading");
     fetch(`/api/pronostico?lat=${FINCA_LAT}&lon=${FINCA_LON}&ndvi=${last}&crop=olivo`)
       .then((r) => (r.ok ? r.json() : Promise.reject()))
       .then((j: Pronostico) => {

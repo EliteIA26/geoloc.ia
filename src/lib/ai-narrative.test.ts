@@ -31,7 +31,7 @@ describe("buildNarrativePrompt", () => {
 describe("buildTerritorialPrompt", () => {
   it("embeds per-department risk summary and instructs grounding", () => {
     const p = buildTerritorialPrompt([
-      { nombre: "Arauco", riesgos: ["sequia"] },
+      { nombre: "Arauco", riesgos: ["incendio"] },
       { nombre: "Famatina", riesgos: ["helada"] },
     ]);
     expect(p).toContain("Arauco");
