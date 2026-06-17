@@ -1,0 +1,36 @@
+import { describe, it, expect } from "vitest";
+import { ndviTrend, snowCoverStatus, SatelitalSchema } from "./satelital";
+
+describe("ndviTrend", () => {
+  it("mejoró when current is clearly higher", () => {
+    const t = ndviTrend(0.5, 0.46);
+    expect(t.label).toBe("mejoró");
+    expect(t.pct).toBe(9);
+  });
+  it("empeoró when current is clearly lower", () => {
+    expect(ndviTrend(0.46, 0.5).label).toBe("empeoró");
+  });
+  it("estable within ±3%", () => {
+    expect(ndviTrend(0.5, 0.49).label).toBe("estable");
+  });
+});
+
+describe("snowCoverStatus", () => {
+  it("alerta when snow cover is very low", () => {
+    expect(snowCoverStatus(2).nivel).toBe("alerta");
+  });
+  it("atencion mid", () => {
+    expect(snowCoverStatus(12).nivel).toBe("atencion");
+  });
+  it("ok when ample", () => {
+    expect(snowCoverStatus(40).nivel).toBe("ok");
+    expect(snowCoverStatus(40).valor).toBe("40%");
+  });
+});
+
+describe("SatelitalSchema", () => {
+  it("accepts a partial payload (all keys optional)", () => {
+    expect(() => SatelitalSchema.parse({ nieve: { cobertura: 10, fecha: "2026-06-10", region: "x" } })).not.toThrow();
+    expect(() => SatelitalSchema.parse({})).not.toThrow();
+  });
+});
