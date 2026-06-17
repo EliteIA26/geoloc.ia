@@ -3,6 +3,7 @@
 
 # python (offline ndvi pipeline)
 .venv/
+__pycache__/
 
 # next.js
 /.next/
