@@ -23,7 +23,10 @@ export function ndviTrend(
 
 export function snowCoverStatus(pct: number): { valor: string; nivel: "ok" | "atencion" | "alerta" } {
   const nivel = pct < 5 ? "alerta" : pct < 20 ? "atencion" : "ok";
-  return { valor: `${Math.round(pct)}%`, nivel };
+  // Show one decimal for tiny-but-nonzero cover so a real 0.2% reading doesn't
+  // render as a misleading "0%".
+  const valor = pct > 0 && pct < 1 ? `${pct.toFixed(1)}%` : `${Math.round(pct)}%`;
+  return { valor, nivel };
 }
 
 // Client loader; returns null if the file is absent/invalid so the UI degrades.

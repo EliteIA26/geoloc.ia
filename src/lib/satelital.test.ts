@@ -26,6 +26,10 @@ describe("snowCoverStatus", () => {
     expect(snowCoverStatus(40).nivel).toBe("ok");
     expect(snowCoverStatus(40).valor).toBe("40%");
   });
+  it("shows one decimal for a tiny non-zero reading (not '0%')", () => {
+    expect(snowCoverStatus(0.2).valor).toBe("0.2%");
+    expect(snowCoverStatus(0).valor).toBe("0%");
+  });
 });
 
 describe("SatelitalSchema", () => {
