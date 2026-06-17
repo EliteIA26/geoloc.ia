@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildNarrativePrompt, buildTerritorialPrompt } from "./ai-narrative";
+import { buildNarrativePrompt, buildTerritorialPrompt, stripMarkdown } from "./ai-narrative";
 import type { Forecast } from "./open-meteo";
 import type { Riesgo } from "./agroclimate";
 
@@ -37,5 +37,15 @@ describe("buildTerritorialPrompt", () => {
     expect(p).toContain("Arauco");
     expect(p).toContain("Famatina");
     expect(p).toMatch(/solo|únicamente|no inventes/i);
+  });
+});
+
+describe("stripMarkdown", () => {
+  it("removes bold/italic asterisks and headings", () => {
+    expect(stripMarkdown("**Recomendación:** regá *hoy*")).toBe("Recomendación: regá hoy");
+    expect(stripMarkdown("# Título\n- item")).toBe("Título item");
+  });
+  it("collapses whitespace and trims", () => {
+    expect(stripMarkdown("a  \n\n  b")).toBe("a b");
   });
 });
