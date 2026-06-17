@@ -7,13 +7,16 @@ import {
   vegetationSentence,
   vegetationDotClass,
 } from "@/lib/vegetation";
+import type { ProvinciaNdvi } from "@/lib/satelital";
 
 export default function AggregateIndicators({
   selected,
   onSelect,
+  prov,
 }: {
   selected: string | null;
   onSelect: (nombre: string) => void;
+  prov: ProvinciaNdvi | null;
 }) {
   const [items, setItems] = useState<DepartamentoProps[]>([]);
 
@@ -21,17 +24,32 @@ export default function AggregateIndicators({
     fetchDepartamentos().then(setItems).catch(() => setItems([]));
   }, []);
 
+  // Merge real MODIS means (fuente: "satelital") over geojson fallback.
+  const merged = useMemo(
+    () =>
+      items.map((it) => {
+        const modis = prov?.deptos[it.nombre];
+        return modis !== undefined
+          ? { ...it, ndvi: modis, fuente: "satelital" as const }
+          : it;
+      }),
+    [items, prov],
+  );
+
   // Ranking: healthiest (highest NDVI) first.
   const ranked = useMemo(
-    () => [...items].sort((a, b) => b.ndvi - a.ndvi),
-    [items],
+    () => [...merged].sort((a, b) => b.ndvi - a.ndvi),
+    [merged],
   );
 
   return (
     <div className="space-y-2.5">
       <div className="flex items-baseline justify-between">
         <h2 className="text-sm ed-soft">Departamentos por salud</h2>
-        <span className="text-[11px] ed-faint">{ranked.length} · ordenado por NDVI</span>
+        <span className="text-[11px] ed-faint">
+          {ranked.length} · ordenado por NDVI
+          {prov ? ` · captura ${prov.fecha}` : ""}
+        </span>
       </div>
       <ul className="space-y-1.5">
         {ranked.map((it) => {

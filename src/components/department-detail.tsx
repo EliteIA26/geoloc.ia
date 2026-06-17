@@ -7,6 +7,7 @@ import {
   vegetationDotClass,
 } from "@/lib/vegetation";
 import { buildSparklinePath } from "@/lib/sparkline";
+import type { ProvinciaNdvi } from "@/lib/satelital";
 
 function ProvenancePill({ fuente }: { fuente: DepartamentoProps["fuente"] }) {
   const satelital = fuente === "satelital";
@@ -25,10 +26,12 @@ function ProvenancePill({ fuente }: { fuente: DepartamentoProps["fuente"] }) {
 export default function DepartmentDetail({
   dep,
   serie,
+  prov,
   onClear,
 }: {
   dep: DepartamentoProps | null;
   serie: number[];
+  prov: ProvinciaNdvi | null;
   onClear: () => void;
 }) {
   if (!dep) {
@@ -39,7 +42,12 @@ export default function DepartmentDetail({
     );
   }
 
-  const status = vegetationStatus(dep.ndvi);
+  // Use real MODIS mean when available (fuente: "satelital"), else fall back to geojson value.
+  const modisNdvi = prov?.deptos[dep.nombre];
+  const ndvi = modisNdvi !== undefined ? modisNdvi : dep.ndvi;
+  const fuente: DepartamentoProps["fuente"] = modisNdvi !== undefined ? "satelital" : dep.fuente;
+
+  const status = vegetationStatus(ndvi);
   const showSparkline = dep.nombre === "Arauco" && serie.length > 1;
 
   return (
@@ -68,14 +76,17 @@ export default function DepartmentDetail({
       {/* Raw indices demoted to a muted secondary evidence line. */}
       <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] ed-faint">
         <span>
-          NDVI <span className="ed-soft tabular-nums">{dep.ndvi.toFixed(2)}</span>
+          NDVI <span className="ed-soft tabular-nums">{ndvi.toFixed(2)}</span>
           <span className="ed-faint"> · salud vegetación</span>
         </span>
         <span>
           NDWI <span className="ed-soft tabular-nums">{dep.ndwi.toFixed(2)}</span>
           <span className="ed-faint"> · humedad</span>
         </span>
-        <ProvenancePill fuente={dep.fuente} />
+        <ProvenancePill fuente={fuente} />
+        {prov && modisNdvi !== undefined && (
+          <span className="ed-faint">· captura {prov.fecha}</span>
+        )}
       </div>
 
       {showSparkline && (

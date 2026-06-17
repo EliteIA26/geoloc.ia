@@ -16,7 +16,7 @@ import { fetchDepartamentos, type DepartamentoProps } from "@/lib/departamentos"
 import { fetchJson, SeriesSchema } from "@/lib/data";
 import { RIESGO_LABEL, type RiesgoTipo } from "@/lib/agroclimate";
 import TrendBadge from "@/components/trend-badge";
-import { fetchSatelital, snowCoverStatus, type Satelital } from "@/lib/satelital";
+import { fetchSatelital, fetchProvinciaNdvi, snowCoverStatus, type Satelital, type ProvinciaNdvi } from "@/lib/satelital";
 import ResizableAside from "@/components/resizable-aside";
 
 // Shape of /api/resumen-territorial (verified live).
@@ -97,6 +97,7 @@ export default function PanelPage() {
   const [resumen, setResumen] = useState<ResumenTerritorial | null>(null);
   const [resumenEstado, setResumenEstado] = useState<"loading" | "ok" | "error">("loading");
   const [sat, setSat] = useState<Satelital | null>(null);
+  const [prov, setProv] = useState<ProvinciaNdvi | null>(null);
 
   useEffect(() => {
     fetchDepartamentos().then(setDeps).catch(() => setDeps([]));
@@ -128,6 +129,10 @@ export default function PanelPage() {
     fetchSatelital().then(setSat);
   }, []);
 
+  useEffect(() => {
+    fetchProvinciaNdvi().then(setProv);
+  }, []);
+
   const selectedDep = selected
     ? deps.find((d) => d.nombre === selected) ?? null
     : null;
@@ -147,11 +152,12 @@ export default function PanelPage() {
     }
     // Cast through unknown: fetched GeoJSON is structurally valid but typed as our local shape
     map.addSource("departamentos", { type: "geojson", data: gj as unknown as maplibregl.GeoJSONSourceSpecification["data"] });
+    // Near-transparent click target — sits over the raster so departments are still selectable.
     map.addLayer({
       id: "dep-ndvi",
       type: "fill",
       source: "departamentos",
-      paint: { "fill-color": ["get", "colorNdvi"], "fill-opacity": 0.55 },
+      paint: { "fill-color": "#000000", "fill-opacity": 0.01 },
     });
     map.addLayer({
       id: "dep-ndwi",
@@ -160,6 +166,16 @@ export default function PanelPage() {
       layout: { visibility: "none" },
       paint: { "fill-color": ["get", "colorNdwi"], "fill-opacity": 0.55 },
     });
+
+    // Province-wide MODIS NDVI fade (under borders). Defensive.
+    try {
+      const lb = await fetch("/raster/larioja-ndvi-bounds.json").then((r) => (r.ok ? r.json() : null));
+      if (lb) {
+        map.addSource("larioja-ndvi", { type: "image", url: "/raster/larioja-ndvi.png", coordinates: lb.coordinates });
+        map.addLayer({ id: "larioja-ndvi", type: "raster", source: "larioja-ndvi", paint: { "raster-opacity": 0.8 } });
+      }
+    } catch (e) { console.warn("province NDVI skipped", e); }
+
     map.addLayer({
       id: "dep-borders",
       type: "line",
@@ -224,7 +240,11 @@ export default function PanelPage() {
     setLayer(k);
     const map = mapRef.current;
     if (!map) return;
-    map.setLayoutProperty("dep-ndvi", "visibility", k === "ndvi" ? "visible" : "none");
+    // NDVI → show province raster; NDWI → hide raster + show flat NDWI fill.
+    // The near-transparent dep-ndvi click layer stays visible always for selection.
+    if (map.getLayer("larioja-ndvi")) {
+      map.setLayoutProperty("larioja-ndvi", "visibility", k === "ndvi" ? "visible" : "none");
+    }
     map.setLayoutProperty("dep-ndwi", "visibility", k === "ndwi" ? "visible" : "none");
   }
 
@@ -336,12 +356,13 @@ export default function PanelPage() {
             <DepartmentDetail
               dep={selectedDep}
               serie={serie}
+              prov={prov}
               onClear={() => setSelected(null)}
             />
             {selected === "Arauco" && sat?.ndviTrend && (
               <TrendBadge actual={sat.ndviTrend.actual} anterior={sat.ndviTrend.anterior} />
             )}
-            <AggregateIndicators selected={selected} onSelect={setSelected} />
+            <AggregateIndicators selected={selected} onSelect={setSelected} prov={prov} />
             <AlertsPanel />
             <ExportReportButton />
           </aside>
