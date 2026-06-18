@@ -1,9 +1,9 @@
 {
-  "ndmiAimogasta": -0.077,
+  "ndmiAimogasta": 0.107,
   "ndviTrend": {
-    "actual": 0.152,
-    "anterior": 0.158,
-    "fechaAnterior": "2026-04-24"
+    "actual": 0.004,
+    "anterior": 0.162,
+    "fechaAnterior": "2026-05-04"
   },
   "nieve": {
     "cobertura": 0.2,

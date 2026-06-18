@@ -19,5 +19,25 @@
     "Independencia": 0.365,
     "Vinchina": 0.153,
     "General Lamadrid": 0.146
+  },
+  "deptosNdwi": {
+    "Arauco": 0.047,
+    "Chilecito": 0.045,
+    "Famatina": 0.02,
+    "Castro Barros": 0.049,
+    "Capital": 0.276,
+    "Sanagasta": 0.018,
+    "San Blas de Los Sauces": 0.055,
+    "Chamical": 0.314,
+    "General Ortiz de Ocampo": 0.344,
+    "General Belgrano": 0.338,
+    "General Felipe Varela": -0.013,
+    "Rosario Vera Peñaloza": 0.315,
+    "Ángel Vicente Peñaloza": 0.212,
+    "General San Martín": 0.38,
+    "General Juan Facundo Quiroga": 0.178,
+    "Independencia": 0.078,
+    "Vinchina": -0.01,
+    "General Lamadrid": -0.078
   }
 }
