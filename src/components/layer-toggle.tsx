@@ -14,7 +14,7 @@ export default function LayerToggle({
     { key: "ndwi", label: "Estrés hídrico" },
   ];
   return (
-    <div className="inline-flex gap-1 rounded-lg border border-black/5 bg-white/90 p-1 shadow-md backdrop-blur-sm">
+    <div className="inline-flex gap-1 rounded-lg border border-border bg-card/90 p-1 shadow-md backdrop-blur-sm">
       {opts.map((o) => {
         const isActive = active === o.key;
         return (

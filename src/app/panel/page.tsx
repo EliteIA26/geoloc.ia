@@ -251,14 +251,14 @@ export default function PanelPage() {
   const capturaLabel = captura ? formatCaptura(captura) : "24 may 2026";
 
   return (
-    <div className="ed-page flex h-screen w-screen flex-col">
+    <div className="bg-background text-foreground flex h-screen w-screen flex-col">
       {/* Softened editorial bar: light surface, ink title with an accent mark. */}
-      <header className="flex items-center justify-between gap-4 border-b border-[var(--hairline)] bg-[var(--bg-card)] px-5 py-3">
+      <header className="flex items-center justify-between gap-4 border-b border-[var(--border)] bg-[var(--card)] px-5 py-3">
         <div className="min-w-0">
-          <h1 className="flex items-center gap-2 truncate text-lg text-[var(--ink)]">
-            <span className="inline-block h-4 w-1 rounded-full bg-[var(--accent)]" aria-hidden />
+          <h1 className="flex items-center gap-2 truncate text-lg text-[var(--foreground)]">
+            <span className="inline-block h-4 w-1 rounded-full bg-[var(--primary)]" aria-hidden />
             Panel Territorial Agrícola
-            <span className="ed-faint">· La Rioja</span>
+            <span className="text-muted-foreground">· La Rioja</span>
           </h1>
           <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs text-emerald-800">
@@ -268,19 +268,19 @@ export default function PanelPage() {
               </span>
               Sentinel-2 · última captura {capturaLabel}
             </span>
-            <p className="truncate text-xs ed-faint">
+            <p className="truncate text-xs text-muted-foreground">
               Monitoreo satelital de salud de cultivos y estrés hídrico, por departamento
             </p>
           </div>
         </div>
-        <div className="flex shrink-0 gap-1 rounded-lg bg-stone-100 p-1 text-sm">
+        <div className="flex shrink-0 gap-1 rounded-lg bg-muted p-1 text-sm">
           <button
             type="button"
             onClick={() => setView("gestion")}
             className={`rounded-md px-3 py-1 transition-colors ${
               view === "gestion"
-                ? "bg-[var(--bg-card)] text-[var(--ink)] shadow-sm"
-                : "ed-soft hover:text-[var(--ink)]"
+                ? "bg-[var(--card)] text-[var(--foreground)] shadow-sm"
+                : "text-muted-foreground hover:text-[var(--foreground)]"
             }`}
           >
             Gestión
@@ -290,8 +290,8 @@ export default function PanelPage() {
             onClick={() => setView("productor")}
             className={`rounded-md px-3 py-1 transition-colors ${
               view === "productor"
-                ? "bg-[var(--bg-card)] text-[var(--ink)] shadow-sm"
-                : "ed-soft hover:text-[var(--ink)]"
+                ? "bg-[var(--card)] text-[var(--foreground)] shadow-sm"
+                : "text-muted-foreground hover:text-[var(--foreground)]"
             }`}
           >
             Productor
@@ -312,15 +312,15 @@ export default function PanelPage() {
           <ResizableAside>
             {/* Insight first: the territorial resumen opens the view. */}
             {resumenEstado === "loading" && (
-              <div className="ed-card p-5">
-                <div className="mb-2.5 text-xs ed-faint">Resumen de gestión · IA</div>
-                <p className="text-sm ed-faint">Analizando la provincia…</p>
+              <div className="glass-panel p-5">
+                <div className="mb-2.5 text-xs text-muted-foreground">Resumen de gestión · IA</div>
+                <p className="text-sm text-muted-foreground">Analizando la provincia…</p>
               </div>
             )}
             {resumenEstado === "error" && (
-              <div className="ed-card p-5">
-                <div className="mb-2.5 text-xs ed-faint">Resumen de gestión</div>
-                <p className="text-sm ed-soft">Resumen territorial no disponible ahora.</p>
+              <div className="glass-panel p-5">
+                <div className="mb-2.5 text-xs text-muted-foreground">Resumen de gestión</div>
+                <p className="text-sm text-muted-foreground">Resumen territorial no disponible ahora.</p>
               </div>
             )}
             {resumenEstado === "ok" && resumen && (
@@ -332,8 +332,8 @@ export default function PanelPage() {
               />
             )}
             {sat?.nieve && (
-              <div className="ed-card p-4">
-                <div className="mb-1 text-xs ed-faint">Reserva hídrica de montaña</div>
+              <div className="glass-panel p-4">
+                <div className="mb-1 text-xs text-muted-foreground">Reserva hídrica de montaña</div>
                 <div className="flex items-baseline gap-2">
                   <span
                     className={`inline-block h-2 w-2 rounded-full ${
@@ -344,11 +344,11 @@ export default function PanelPage() {
                           : "bg-emerald-500"
                     }`}
                   />
-                  <span className="text-lg text-[var(--ink)]">
+                  <span className="text-lg text-[var(--foreground)]">
                     Nieve en la cordillera: {snowCoverStatus(sat.nieve.cobertura).valor}
                   </span>
                 </div>
-                <div className="mt-1 text-[11px] ed-faint">
+                <div className="mt-1 text-[11px] text-muted-foreground">
                   {sat.nieve.region} · captura {sat.nieve.fecha}
                 </div>
               </div>
