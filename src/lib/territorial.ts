@@ -105,6 +105,18 @@ export function composeVinchinaSatelliteIndicators(
     });
   }
 
+  if (data.ndmiMedio !== undefined && data.haActivaMax > 0) {
+    indicators.push({
+      etiqueta: "NDMI medio (zonas activas)",
+      valor: decimalFormatter.format(data.ndmiMedio),
+      fonte: "Sentinel-2 (Copernicus)",
+      fecha: data.fecha,
+      confianza: "observado",
+      nota:
+        "Proxy de humedad de la vegetación activa; no mide directamente uso de agua ni producción.",
+    });
+  }
+
   return indicators;
 }
 

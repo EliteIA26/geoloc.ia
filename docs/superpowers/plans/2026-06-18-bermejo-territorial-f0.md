@@ -8,13 +8,13 @@
 
 **Tech Stack:** Next 16 (App Router, client component), React 19, TypeScript strict, Zod v4, Tailwind 4, MapLibre GL v5, Vitest; Python (rasterio + pystac-client + planetary-computer) for the satellite pipeline.
 
-**Honesty rules (non-negotiable, from the spec):** satellite = "vegetação ativa observada" (cultivo OU natural), never "X ha de [cultivo]"; estimates always as a range + confidence; Chile corridor status "incipiente"; Censo/CEP are dated static snapshots. Every indicator shows fonte·data·confiança.
+**Honesty rules (non-negotiable, from the spec):** satellite = "vegetação ativa observada" (cultivo OU natural), never "X ha de [cultivo]"; the ±15% range is an unvalidated heuristic scenario band, not statistical confidence; NDVI/NDMI are biophysical proxies, not direct production or water-use measurements; Chile corridor status "incipiente"; Censo/CEP are dated static snapshots. Every indicator shows fonte·data·confiança.
 
 ---
 
 ## File Structure
 
-- Create `src/lib/territorial.ts` — `Confianza`, `Indicador`, `Territorial`, `VinchinaSatelital` Zod schemas + types; `fetchTerritorial()`, `fetchVinchinaSatelital()`; pure helpers `areaBand()`, `formatAreaRange()`.
+- Create `src/lib/territorial.ts` — `Confianza`, `Indicador`, `Territorial`, `VinchinaSatelital` Zod schemas + types; `fetchTerritorial()`, `fetchVinchinaSatelital()`; pure helpers `areaBand()`, `formatAreaRange()`, `composeVinchinaSatelliteIndicators()`.
 - Create `src/lib/territorial.test.ts` — unit tests (TDD).
 - Create `public/data/territorial-vinchina.json` — curated official indicators (Censo 2022 + CEP XXI) with fonte/fecha/confianza.
 - Create `public/data/bermejo-deptos.geojson` — the 3 deptos (derived from existing `departamentos.geojson`).
@@ -459,7 +459,7 @@ git commit -m "feat(territorial): SourceBadge, IndicatorCard, BriefingChapter co
 **Files:**
 - Create: `src/app/bermejo/page.tsx`
 
-Loads the territorial briefing + the satellite estimate, composes the `satelite` chapter at runtime (honest range via `formatAreaRange`), and renders the 3D map (3 deptos, Vinchina highlight, corridor) beside the briefing aside.
+Loads the territorial briefing + the observed active-vegetation satellite proxy, composes the `satelite` chapter at runtime (cultivated or natural; local validation required), and renders the 3D map (3 deptos, Vinchina highlight, corridor) beside the briefing aside.
 
 - [ ] **Step 1: Write `src/app/bermejo/page.tsx`**
 
@@ -474,7 +474,7 @@ import BriefingChapter from "@/components/territorial/briefing-chapter";
 import {
   fetchTerritorial,
   fetchVinchinaSatelital,
-  formatAreaRange,
+  composeVinchinaSatelliteIndicators,
   type Territorial,
   type Indicador,
 } from "@/lib/territorial";
@@ -489,30 +489,10 @@ export default function BermejoPage() {
     fetchTerritorial().then(setData);
   }, []);
 
-  // Compose the satélite chapter at runtime from the pipeline estimate (honest range).
+  // Compose active-vegetation proxy indicators; they do not directly measure production/cultivation.
   useEffect(() => {
     fetchVinchinaSatelital().then((s) => {
-      if (!s) return;
-      const inds: Indicador[] = [
-        {
-          etiqueta: "Área con vegetación activa observada",
-          valor: formatAreaRange(s.haActivaMin, s.haActivaMax),
-          fonte: "Sentinel-2 (Copernicus)",
-          fecha: s.fecha,
-          confianza: "estimado",
-          nota: "vegetación activa (cultivo o natural) — distinguir cultivo requiere validación local",
-        },
-      ];
-      if (s.ndviMedio != null) {
-        inds.push({
-          etiqueta: "NDVI medio (zonas activas)",
-          valor: s.ndviMedio.toFixed(2),
-          fonte: "Sentinel-2 (Copernicus)",
-          fecha: s.fecha,
-          confianza: "observado",
-        });
-      }
-      setSateliteExtra(inds);
+      setSateliteExtra(s ? composeVinchinaSatelliteIndicators(s) : []);
     });
   }, []);
 
@@ -577,7 +557,7 @@ export default function BermejoPage() {
         {data && (
           <>
             <BriefingChapter numero={1} titulo="Contexto socio-productivo" indicadores={data.contexto} />
-            <BriefingChapter numero={2} titulo="Producción observada (satélite)" indicadores={[...data.satelite, ...sateliteExtra]} />
+            <BriefingChapter numero={2} titulo="Vegetación activa observada (satélite)" indicadores={[...data.satelite, ...sateliteExtra]} />
             <BriefingChapter numero={3} titulo="Logística y conexión con Chile" indicadores={data.chile} />
           </>
         )}
@@ -623,7 +603,7 @@ git push origin main
 gh workflow run satelital.yml
 ```
 
-Then watch the run: `gh run watch <id> --exit-status` and confirm `public/data/vinchina-satelital.json` + `public/raster/vinchina-ndvi.png` are committed by the bot (Vercel redeploys). The briefing's satélite chapter then shows the real observed area range.
+Then watch the run: `gh run watch <id> --exit-status` and confirm `public/data/vinchina-satelital.json` + `public/raster/vinchina-ndvi.png` are committed by the bot (Vercel redeploys). The briefing's active-vegetation chapter then shows the observed proxy range, explicitly subject to local validation.
 
 ---
 

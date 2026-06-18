@@ -243,8 +243,8 @@ function EmptySatelliteChapter({ message }: { message: string }) {
   return (
     <section className="space-y-2" aria-live="polite">
       <h3 className="text-sm text-foreground">
-        <span className="text-muted-foreground">2.</span> Producción observada
-        (satélite)
+        <span className="text-muted-foreground">2.</span>{" "}
+        Vegetación activa observada (satélite)
       </h3>
       <p className="rounded-xl border border-[var(--border)] bg-card p-3 text-sm text-muted-foreground">
         {message}
@@ -277,7 +277,7 @@ function TerritorialBriefing({
       {satelliteIndicators.length > 0 ? (
         <BriefingChapter
           numero={2}
-          titulo="Producción observada (satélite)"
+          titulo="Vegetación activa observada (satélite)"
           indicadores={satelliteIndicators}
         />
       ) : satellite.status === "loading" ? (

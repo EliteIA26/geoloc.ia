@@ -166,13 +166,14 @@ describe("formatAreaRange", () => {
 });
 
 describe("composeVinchinaSatelliteIndicators", () => {
-  it("composes the heuristic active-area range and observed NDVI", () => {
+  it("composes the active-area range and observed NDVI/NDMI indicators", () => {
     expect(
       composeVinchinaSatelliteIndicators({
         fecha: "2026-05-24",
         haActivaMin: 1240,
         haActivaMax: 1360,
         ndviMedio: 0.324,
+        ndmiMedio: 0.187,
       }),
     ).toEqual([
       {
@@ -190,6 +191,14 @@ describe("composeVinchinaSatelliteIndicators", () => {
         fecha: "2026-05-24",
         confianza: "observado",
       },
+      {
+        etiqueta: "NDMI medio (zonas activas)",
+        valor: "0,19",
+        fonte: "Sentinel-2 (Copernicus)",
+        fecha: "2026-05-24",
+        confianza: "observado",
+        nota: "Proxy de humedad de la vegetación activa; no mide directamente uso de agua ni producción.",
+      },
     ]);
   });
 
@@ -203,6 +212,19 @@ describe("composeVinchinaSatelliteIndicators", () => {
     expect(indicators).toHaveLength(1);
     expect(indicators[0].etiqueta).toBe(
       "Área con vegetación activa observada",
+    );
+  });
+
+  it("omits the NDMI indicator when the mean is unavailable", () => {
+    const indicators = composeVinchinaSatelliteIndicators({
+      fecha: "2026-05-24",
+      haActivaMin: 1240,
+      haActivaMax: 1360,
+      ndviMedio: 0.324,
+    });
+
+    expect(indicators.map((indicator) => indicator.etiqueta)).not.toContain(
+      "NDMI medio (zonas activas)",
     );
   });
 
