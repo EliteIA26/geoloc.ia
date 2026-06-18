@@ -4,7 +4,7 @@
 
 **Goal:** Build a presentable B2G demo at `/bermejo` — a 3D map of the Valle del Bermejo focused on Vinchina plus a "briefing" panel (contexto Censo 2022 → satélite/área ativa observada → corredor Chile), every indicator carrying a fonte·data·confiança badge, framed as territorial intelligence feeding the **Plan de Desarrollo Productivo** (related to the 2015 POT, which provides the base territorial diagnosis — Federico: "está relacionado, pero el nuestro es un plan de desarrollo productivo").
 
-**Architecture:** New client route `/bermejo` reusing the existing MapLibre `MapShell` + premium styling. A new `src/lib/territorial.ts` (Zod schemas + loaders + pure formatters) feeds the UI from static curated JSON (Censo 2022 + CEP XXI) + GeoJSON layers (IGN) + a Sentinel-2 raster/estimate produced by a new Python pipeline on the existing Action.
+**Architecture:** New client route `/bermejo` reusing the existing MapLibre `MapShell` + premium styling. A new `src/lib/territorial.ts` (Zod schemas + loaders + pure formatters) feeds the UI from static curated JSON (Censo 2022 + CEP XXI) + GeoJSON layers (existing IGN-derived department boundaries, Argentina Georef locality centroids, and DNV RN76 geometry) + a Sentinel-2 raster/estimate produced by a new Python pipeline on the existing Action.
 
 **Tech Stack:** Next 16 (App Router, client component), React 19, TypeScript strict, Zod v4, Tailwind 4, MapLibre GL v5, Vitest; Python (rasterio + pystac-client + planetary-computer) for the satellite pipeline.
 

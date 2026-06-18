@@ -29,7 +29,7 @@ Mapa de atores, score de "potencial", cadastro de produtores, identificação de
   - `public/data/territorial-vinchina.json` — indicadores curados (Censo 2022, CEP XXI), cada um com `fonte`, `fecha`, `confianza`.
   - `public/data/bermejo-deptos.geojson` — os 3 deptos (de IGN; reutiliza/filtra o que já temos).
   - `public/data/vinchina-localidades.geojson` — Vinchina, Jagüé.
-  - `public/data/corredor-pircas-negras.geojson` — RN76 → Paso Pircas Negras (IGN red vial).
+  - `public/data/corredor-pircas-negras.geojson` — RN76 → Paso Pircas Negras (DNV; geometria oficial da RN76).
   - `public/raster/vinchina-ndvi.png` (+ `-bounds.json`) — Sentinel-2, gerado pela Action.
 - Reúsa `MapShell`, `ResizableAside`, componentes de selo/sinal do premium.
 
