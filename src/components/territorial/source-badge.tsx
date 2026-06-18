@@ -11,12 +11,14 @@ type SourceBadgeProps = {
   fonte: string;
   fecha: string;
   confianza: Confianza;
+  url?: string;
 };
 
 export default function SourceBadge({
   fonte,
   fecha,
   confianza,
+  url,
 }: SourceBadgeProps) {
   return (
     <div className="inline-flex flex-wrap items-center gap-1 text-[10px] text-muted-foreground">
@@ -25,7 +27,19 @@ export default function SourceBadge({
       >
         {confianza}
       </span>
-      <span>{fonte}</span>
+      {url ? (
+        <a
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label={`${fonte} (abre en una nueva pestaña)`}
+          className="rounded-sm underline decoration-current underline-offset-2 transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
+        >
+          {fonte}
+        </a>
+      ) : (
+        <span>{fonte}</span>
+      )}
       <span aria-hidden="true">·</span>
       <span>{fecha}</span>
     </div>

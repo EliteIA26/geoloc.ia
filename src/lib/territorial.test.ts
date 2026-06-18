@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  IndicadorSchema,
   TerritorialSchema,
   VinchinaSatelitalSchema,
   areaBand,
@@ -119,6 +120,32 @@ describe("VinchinaSatelitalSchema", () => {
         ndmiMedio: 0,
       }).success,
     ).toBe(false);
+  });
+});
+
+describe("IndicadorSchema source URL", () => {
+  const indicator = {
+    etiqueta: "Población 2022",
+    valor: "2.500",
+    fonte: "INDEC Censo 2022",
+    fecha: "2022",
+    confianza: "oficial" as const,
+  };
+
+  it.each([
+    "https://www.indec.gob.ar/indec/web/Nivel4-Tema-2-41-165",
+    "http://datos.example.org/indicador?id=2022",
+  ])("preserves an absolute HTTP source URL: %s", (url) => {
+    expect(IndicadorSchema.parse({ ...indicator, url }).url).toBe(url);
+  });
+
+  it.each([
+    "not-a-url",
+    "/fuentes/indec",
+    "ftp://datos.example.org/indicador.csv",
+    "mailto:fuentes@example.org",
+  ])("rejects an invalid or non-HTTP source URL: %s", (url) => {
+    expect(IndicadorSchema.safeParse({ ...indicator, url }).success).toBe(false);
   });
 });
 

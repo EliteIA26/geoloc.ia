@@ -15,6 +15,7 @@ export const IndicadorSchema = z.object({
   fecha: z.string(),
   confianza: ConfianzaSchema,
   nota: z.string().optional(),
+  url: z.url({ protocol: /^https?$/ }).optional(),
 });
 export type Indicador = z.infer<typeof IndicadorSchema>;
 

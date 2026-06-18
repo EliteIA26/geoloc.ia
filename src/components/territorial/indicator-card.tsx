@@ -17,6 +17,7 @@ export default function IndicatorCard({ ind }: IndicatorCardProps) {
         fonte={ind.fonte}
         fecha={ind.fecha}
         confianza={ind.confianza}
+        url={ind.url}
       />
     </div>
   );

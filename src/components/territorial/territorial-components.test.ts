@@ -44,6 +44,36 @@ describe("SourceBadge", () => {
       expect(markup).toContain('aria-hidden="true"');
     },
   );
+
+  it("renders the source as an accessible external link when a URL is available", () => {
+    const url = "https://www.indec.gob.ar/indec/web/Nivel4-Tema-2-41-165";
+    const markup = renderToStaticMarkup(
+      createElement(SourceBadge, {
+        fonte: "INDEC Censo 2022",
+        fecha: "2022",
+        confianza: "oficial",
+        url,
+      }),
+    );
+
+    expect(markup).toContain(`<a href="${url}" target="_blank" rel="noopener noreferrer"`);
+    expect(markup).toContain(">INDEC Censo 2022</a>");
+    expect(markup).toContain("hover:text-foreground");
+    expect(markup).toContain("focus-visible:outline-2");
+  });
+
+  it("keeps the source as plain text when no URL is available", () => {
+    const markup = renderToStaticMarkup(
+      createElement(SourceBadge, {
+        fonte: "INDEC Censo 2022",
+        fecha: "2022",
+        confianza: "oficial",
+      }),
+    );
+
+    expect(markup).toContain("<span>INDEC Censo 2022</span>");
+    expect(markup).not.toContain("<a");
+  });
 });
 
 describe("IndicatorCard", () => {
@@ -71,6 +101,15 @@ describe("IndicatorCard", () => {
 
     expect(markup).not.toContain("Variación intercensal");
     expect(markup).not.toContain("<p");
+  });
+
+  it("passes the indicator source URL to its source badge", () => {
+    const url = "https://www.indec.gob.ar/indec/web/Nivel4-Tema-2-41-165";
+    const markup = renderToStaticMarkup(
+      createElement(IndicatorCard, { ind: { ...indicator, url } }),
+    );
+
+    expect(markup).toContain(`href="${url}"`);
   });
 });
 
