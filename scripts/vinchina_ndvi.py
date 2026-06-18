@@ -1,12 +1,14 @@
-"""Sentinel-2 NDVI snapshot and observed active-vegetation estimate for Vinchina.
+"""Sentinel-2 indices and active-vegetation estimate for Vinchina.
 
-The reported hectares are pixels with NDVI > 0.25, an arid-land vegetation
-baseline. The estimate describes observed active vegetation, not crop or
-cultivated area: active pixels may be cultivated or natural vegetation, and
-distinguishing cultivation requires local validation. The +/-15% range is an
-unvalidated heuristic scenario band (faixa heurística de cenário), not a
-confidence interval or modeled uncertainty. Threshold sensitivity and field
-validation are required; this is not a parcel inventory.
+Every output is clipped to the Vinchina department boundary inside the query
+bbox. Reported hectares are pixels with NDVI > 0.25, an arid-land vegetation
+baseline; active-zone NDMI is averaged only over those same pixels. The estimate
+describes observed active vegetation, not crop or cultivated area: active pixels
+may be cultivated or natural vegetation, and distinguishing cultivation requires
+local validation. The +/-15% range is an unvalidated heuristic scenario band
+(faixa heurística de cenário), not a confidence interval or modeled uncertainty.
+Threshold sensitivity and field validation are required; this is not a parcel
+inventory.
 """
 
 import io
@@ -48,6 +50,7 @@ ROOT = Path(__file__).resolve().parents[1]
 PNG_PATH = ROOT / "public" / "raster" / "vinchina-ndvi.png"
 BOUNDS_PATH = ROOT / "public" / "raster" / "vinchina-ndvi-bounds.json"
 DATA_PATH = ROOT / "public" / "data" / "vinchina-satelital.json"
+DEPTOS_PATH = ROOT / "public" / "data" / "bermejo-deptos.geojson"
 
 
 def bbox_coverage_fraction(scene_bbox, target_bbox):
@@ -66,6 +69,81 @@ def bbox_coverage_fraction(scene_bbox, target_bbox):
     if target_area <= 0:
         raise ValueError("target bbox must have positive width and height")
     return intersection_width * intersection_height / target_area
+
+
+def select_department_geometry(geojson, name="Vinchina"):
+    """Return exactly one named Polygon/MultiPolygon from a FeatureCollection."""
+    if geojson.get("type") != "FeatureCollection":
+        raise ValueError("department GeoJSON must be a FeatureCollection")
+    matches = [
+        feature
+        for feature in geojson.get("features", [])
+        if feature.get("properties", {}).get("nombre") == name
+    ]
+    if len(matches) != 1:
+        raise ValueError(
+            f"expected exactly one department feature named {name!r}; "
+            f"found {len(matches)}"
+        )
+    geometry = matches[0].get("geometry") or {}
+    if geometry.get("type") not in {"Polygon", "MultiPolygon"}:
+        raise ValueError(f"department {name!r} must be a Polygon or MultiPolygon")
+    if not geometry.get("coordinates"):
+        raise ValueError(f"department {name!r} has empty geometry coordinates")
+    return geometry
+
+
+def load_department_geometry(path=DEPTOS_PATH, name="Vinchina"):
+    """Load the named department geometry without importing geospatial packages."""
+    with Path(path).open(encoding="utf-8") as source:
+        return select_department_geometry(json.load(source), name)
+
+
+def rasterize_department_mask(geometry, bbox=BBOX, resolution=ANALYSIS_RES):
+    """Rasterize the department on the exact EPSG:4326 analysis grid."""
+    from rasterio.features import geometry_mask
+    from rasterio.transform import from_bounds
+
+    west, south, east, north = bbox
+    width = int(round((east - west) / resolution))
+    height = int(round((north - south) / resolution))
+    if width <= 0 or height <= 0:
+        raise ValueError("analysis grid must have positive width and height")
+    transform = from_bounds(west, south, east, north, width, height)
+    mask = geometry_mask(
+        [geometry],
+        out_shape=(height, width),
+        transform=transform,
+        invert=True,
+        all_touched=False,
+    )
+    if not mask.any():
+        raise ValueError("Vinchina department mask is empty inside the analysis bbox")
+    return mask
+
+
+def apply_department_mask(values, department_mask):
+    """Set every pixel outside the department AOI to NaN."""
+    values = np.asarray(values, dtype=np.float64)
+    department_mask = np.asarray(department_mask, dtype=bool)
+    if values.shape != department_mask.shape:
+        raise ValueError("department mask must match the analysis grid")
+    masked = values.copy()
+    masked[~department_mask] = np.nan
+    return masked
+
+
+def usable_aoi_coverage(values, department_mask):
+    """Fraction of department pixels with a finite, jointly usable value."""
+    values = np.asarray(values)
+    department_mask = np.asarray(department_mask, dtype=bool)
+    if values.shape != department_mask.shape:
+        raise ValueError("department mask must match the analysis grid")
+    department_pixels = int(department_mask.sum())
+    if department_pixels == 0:
+        raise ValueError("department mask is empty")
+    usable_pixels = int((department_mask & np.isfinite(values)).sum())
+    return usable_pixels / department_pixels
 
 
 def clear_land_mask(scl):
@@ -106,12 +184,45 @@ def compute_ndvi(red, nir, to_reflectance, quality_mask=None):
     return ndvi
 
 
+def compute_ndmi(nir, swir, to_reflectance, quality_mask=None):
+    """Compute offset-corrected NDMI with the same physical/quality rules."""
+    nir = np.asarray(nir, dtype=np.float64)
+    swir = np.asarray(swir, dtype=np.float64)
+    nir_reflectance = to_reflectance(nir)
+    swir_reflectance = to_reflectance(swir)
+    denominator = nir_reflectance + swir_reflectance
+    valid_bands = (
+        np.isfinite(nir)
+        & np.isfinite(swir)
+        & np.isfinite(nir_reflectance)
+        & np.isfinite(swir_reflectance)
+        & (nir_reflectance > 0.0)
+        & (swir_reflectance > 0.0)
+        & (denominator > NDVI_DENOMINATOR_EPS)
+    )
+    if quality_mask is not None:
+        quality_mask = np.asarray(quality_mask, dtype=bool)
+        if quality_mask.shape != nir.shape:
+            raise ValueError("quality mask must match the NIR/SWIR grid")
+        valid_bands &= quality_mask
+    ndmi = np.full(nir.shape, np.nan, dtype=np.float64)
+    np.divide(
+        nir_reflectance - swir_reflectance,
+        denominator,
+        out=ndmi,
+        where=valid_bands,
+    )
+    ndmi[(ndmi < -1.0) | (ndmi > 1.0)] = np.nan
+    return ndmi
+
+
 def summarize_active_area(
     ndvi,
     resolution,
     latitude,
     threshold=NDVI_ACTIVE,
     relative_margin=REL_MARGIN,
+    ndmi=None,
 ):
     """Estimate observed active-vegetation hectares with a threshold margin."""
     ndvi = np.asarray(ndvi)
@@ -130,6 +241,15 @@ def summarize_active_area(
     }
     if active_count and summary["haActivaMax"] > 0:
         summary["ndviMedio"] = round(float(ndvi[active].mean()), 3)
+        if ndmi is not None:
+            ndmi = np.asarray(ndmi)
+            if ndmi.shape != ndvi.shape:
+                raise ValueError("NDMI must match the NDVI analysis grid")
+            active_ndmi = (
+                active & np.isfinite(ndmi) & (ndmi >= -1.0) & (ndmi <= 1.0)
+            )
+            if active_ndmi.any():
+                summary["ndmiMedio"] = round(float(ndmi[active_ndmi].mean()), 3)
     return summary
 
 
@@ -141,9 +261,16 @@ def format_active_area_summary(summary):
         if mean is not None
         else "active-pixel mean NDVI unavailable"
     )
+    ndmi = summary.get("ndmiMedio")
+    ndmi_text = (
+        f"active-zone mean NDMI {ndmi}"
+        if ndmi is not None
+        else "active-zone mean NDMI unavailable"
+    )
     return (
-        f"Observed {ESTIMATE_QUALIFIER} (NDVI > {NDVI_ACTIVE:.2f}): "
-        f"{summary['haActivaMin']}-{summary['haActivaMax']} ha; {mean_text}."
+        f"Observed {ESTIMATE_QUALIFIER} within the Vinchina department boundary "
+        f"(NDVI > {NDVI_ACTIVE:.2f}): {summary['haActivaMin']}-"
+        f"{summary['haActivaMax']} ha; {mean_text}; {ndmi_text}."
     )
 
 
@@ -220,8 +347,8 @@ def resize_colorized_for_display(ndvi, size):
     return display
 
 
-def _download_scene_ndvi(s2, item, analysis_res):
-    """Download B04/B08/SCL and return quality-masked native-ish NDVI."""
+def _download_scene_indices(s2, item, analysis_res, department_mask):
+    """Download B04/B08/B11/SCL and return jointly masked NDVI/NDMI."""
     temp_root = "C:/Temp" if os.path.isdir("C:/Temp") else None
     with tempfile.TemporaryDirectory(prefix="vinchina_ndvi_", dir=temp_root) as tmp:
         print(f"Downloading B04 (red) for {item.id} ...")
@@ -232,12 +359,17 @@ def _download_scene_ndvi(s2, item, analysis_res):
         nir_path = s2.download_asset(
             item.assets["B08"].href, os.path.join(tmp, "B08.tif")
         )
+        print(f"Downloading B11 (SWIR) for {item.id} ...")
+        swir_path = s2.download_asset(
+            item.assets["B11"].href, os.path.join(tmp, "B11.tif")
+        )
         print(f"Downloading SCL (scene classification) for {item.id} ...")
         scl_path = s2.download_asset(
             item.assets["SCL"].href, os.path.join(tmp, "SCL.tif")
         )
         red = s2.read_band_to_4326(red_path, BBOX, analysis_res)
         nir = s2.read_band_to_4326(nir_path, BBOX, analysis_res)
+        swir = s2.read_band_to_4326(swir_path, BBOX, analysis_res)
         scl = s2.read_band_to_4326(
             scl_path,
             BBOX,
@@ -245,15 +377,27 @@ def _download_scene_ndvi(s2, item, analysis_res):
             resampling=s2.Resampling.nearest,
         )
 
+    department_mask = np.asarray(department_mask, dtype=bool)
+    if department_mask.shape != scl.shape:
+        raise ValueError("department mask must match the downloaded analysis grid")
+    clear_department = clear_land_mask(scl) & department_mask
     ndvi = compute_ndvi(
         red,
         nir,
         s2.to_reflectance,
-        quality_mask=clear_land_mask(scl),
+        quality_mask=clear_department,
     )
-    valid_count = int(np.isfinite(ndvi).sum())
-    usable_coverage = valid_count / ndvi.size if ndvi.size else 0.0
-    return ndvi, usable_coverage
+    ndmi = compute_ndmi(
+        nir,
+        swir,
+        s2.to_reflectance,
+        quality_mask=clear_department,
+    )
+    jointly_usable = department_mask & np.isfinite(ndvi) & np.isfinite(ndmi)
+    ndvi = apply_department_mask(ndvi, jointly_usable)
+    ndmi = apply_department_mask(ndmi, jointly_usable)
+    usable_coverage = usable_aoi_coverage(ndvi, department_mask)
+    return (ndvi, ndmi), usable_coverage
 
 
 def select_scene_by_usable_coverage(
@@ -325,6 +469,8 @@ def _write_outputs_atomically(ndvi, item, valid_coverage, summary):
         "sceneId": item.id,
         "nubes": cloud,
         "coberturaValidaPct": round(valid_coverage * 100.0, 1),
+        "mascaraAOI": "límite departamental de Vinchina",
+        "ndmiMedioZona": f"vegetación activa NDVI > {NDVI_ACTIVE:.2f}",
     }
     data = {"fecha": date, **summary}
     payloads = [
@@ -358,6 +504,23 @@ def main():
     sys.path.insert(0, str(Path(__file__).resolve().parent))
     import s2_common as s2
 
+    if not math.isclose(s2.DST_RES, ANALYSIS_RES, rel_tol=0.0, abs_tol=1e-12):
+        raise SystemExit(
+            f"Analysis resolution {ANALYSIS_RES} no longer matches "
+            f"s2_common.DST_RES {s2.DST_RES}."
+        )
+    try:
+        geometry = load_department_geometry(DEPTOS_PATH, "Vinchina")
+        department_mask = rasterize_department_mask(geometry, BBOX, s2.DST_RES)
+    except Exception as error:
+        raise SystemExit(
+            f"Cannot build Vinchina department boundary mask: {error}"
+        ) from error
+    print(
+        "Vinchina department boundary mask: "
+        f"{int(department_mask.sum())}/{department_mask.size} analysis pixels inside AOI."
+    )
+
     scenes = s2.find_scenes(
         BBOX,
         mgrs_tile=None,
@@ -380,24 +543,25 @@ def main():
             f"(required {MIN_BBOX_COVERAGE:.0%} bbox coverage)."
         )
 
-    if not math.isclose(s2.DST_RES, ANALYSIS_RES, rel_tol=0.0, abs_tol=1e-12):
-        raise SystemExit(
-            f"Analysis resolution {ANALYSIS_RES} no longer matches "
-            f"s2_common.DST_RES {s2.DST_RES}."
-        )
     try:
-        item, ndvi, valid_coverage = select_scene_by_usable_coverage(
+        item, indices, valid_coverage = select_scene_by_usable_coverage(
             candidates,
-            lambda candidate: _download_scene_ndvi(s2, candidate, s2.DST_RES),
+            lambda candidate: _download_scene_indices(
+                s2, candidate, s2.DST_RES, department_mask
+            ),
         )
     except ValueError as error:
         raise SystemExit(str(error)) from error
 
+    ndvi, ndmi = indices
     latitude = (BBOX[1] + BBOX[3]) / 2.0
-    summary = summarize_active_area(ndvi, s2.DST_RES, latitude)
+    summary = summarize_active_area(
+        ndvi, s2.DST_RES, latitude, ndmi=ndmi
+    )
     _write_outputs_atomically(ndvi, item, valid_coverage, summary)
     print(
-        f"Selected {item.id} ({item.datetime:%Y-%m-%d}); clear usable AOI coverage "
+        f"Selected {item.id} ({item.datetime:%Y-%m-%d}); clear usable Vinchina "
+        "boundary coverage "
         f"{valid_coverage:.1%}."
     )
     print(format_active_area_summary(summary))

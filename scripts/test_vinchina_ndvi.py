@@ -11,6 +11,82 @@ import vinchina_ndvi as subject
 
 
 class VinchinaNdviTests(unittest.TestCase):
+    def test_loads_vinchina_geometry_from_actual_department_geojson(self):
+        path = subject.ROOT / "public" / "data" / "bermejo-deptos.geojson"
+        geometry = subject.load_department_geometry(path, "Vinchina")
+
+        self.assertIn(geometry["type"], {"Polygon", "MultiPolygon"})
+        self.assertTrue(geometry["coordinates"])
+
+    def test_department_geometry_selection_rejects_missing_or_ambiguous_feature(self):
+        polygon = {"type": "Polygon", "coordinates": [[[0, 0], [1, 0], [0, 0]]]}
+        missing = {"type": "FeatureCollection", "features": []}
+        ambiguous = {
+            "type": "FeatureCollection",
+            "features": [
+                {"properties": {"nombre": "Vinchina"}, "geometry": polygon},
+                {"properties": {"nombre": "Vinchina"}, "geometry": polygon},
+            ],
+        }
+
+        for geojson in (missing, ambiguous):
+            with self.subTest(features=len(geojson["features"])):
+                with self.assertRaisesRegex(ValueError, "exactly one"):
+                    subject.select_department_geometry(geojson, "Vinchina")
+
+    def test_department_mask_excludes_outside_area_and_visualization(self):
+        ndvi = np.array([[0.4, 0.9], [0.2, 0.6]])
+        department = np.array([[True, False], [True, False]])
+        masked = subject.apply_department_mask(ndvi, department)
+        summary = subject.summarize_active_area(
+            masked, 0.001, -28.75, relative_margin=0
+        )
+        rgba = subject.colorize_ndvi(masked)
+
+        self.assertTrue(np.isnan(masked[0, 1]))
+        self.assertTrue(np.isnan(masked[1, 1]))
+        self.assertEqual(summary["ndviMedio"], 0.4)
+        self.assertEqual(rgba[0, 1, 3], 0)
+        self.assertEqual(rgba[1, 1, 3], 0)
+
+    def test_usable_coverage_denominator_is_department_pixels_only(self):
+        ndvi = np.array([[0.4, np.nan], [0.3, 0.2]])
+        department = np.array([[True, True], [False, False]])
+        coverage = subject.usable_aoi_coverage(ndvi, department)
+
+        self.assertEqual(coverage, 0.5)
+
+    def test_usable_coverage_rejects_empty_department_mask(self):
+        with self.assertRaisesRegex(ValueError, "empty"):
+            subject.usable_aoi_coverage(
+                np.array([[0.4]]), np.array([[False]])
+            )
+
+    def test_ndmi_is_offset_corrected_bounded_and_quality_masked(self):
+        nir = np.array([[5000.0, 5000.0, 900.0]])
+        swir = np.array([[3000.0, 3000.0, 800.0]])
+        quality = np.array([[True, False, True]])
+        ndmi = subject.compute_ndmi(
+            nir,
+            swir,
+            lambda values: (values - 1000.0) / 10000.0,
+            quality_mask=quality,
+        )
+
+        self.assertAlmostEqual(ndmi[0, 0], 1.0 / 3.0)
+        self.assertTrue(np.isnan(ndmi[0, 1]))
+        self.assertTrue(np.isnan(ndmi[0, 2]))
+
+    def test_active_summary_reports_ndmi_only_over_active_ndvi_pixels(self):
+        ndvi = np.array([[0.4, 0.6, 0.2, np.nan]])
+        ndmi = np.array([[0.2, 0.4, 0.9, 0.8]])
+        summary = subject.summarize_active_area(
+            ndvi, 0.0009, -28.75, relative_margin=0.15, ndmi=ndmi
+        )
+
+        self.assertEqual(summary["ndviMedio"], 0.5)
+        self.assertEqual(summary.get("ndmiMedio"), 0.3)
+
     def test_workflow_keeps_vinchina_immediately_after_modis(self):
         workflow = (subject.ROOT / ".github" / "workflows" / "satelital.yml").read_text(
             encoding="utf-8"
@@ -156,6 +232,8 @@ class VinchinaNdviTests(unittest.TestCase):
         self.assertIn("unvalidated heuristic scenario band", wording)
         self.assertIn("threshold sensitivity", wording)
         self.assertIn("field validation", wording)
+        self.assertIn("department boundary", wording)
+        self.assertIn("active-zone ndmi", wording)
 
     def test_area_summary_uses_native_analysis_resolution(self):
         analysis_resolution = subject.ANALYSIS_RES
@@ -199,14 +277,17 @@ class VinchinaNdviTests(unittest.TestCase):
         self.assertEqual(summary["ndviMedio"], 0.45)
 
     def test_active_summary_omits_mean_when_no_pixels_exceed_threshold(self):
+        ndvi = np.array([[0.25, -0.1], [np.nan, 0.2]])
         summary = subject.summarize_active_area(
-            np.array([[0.25, -0.1], [np.nan, 0.2]]), 0.0009, -28.75
+            ndvi, 0.0009, -28.75, ndmi=np.full(ndvi.shape, 0.8)
         )
 
         self.assertEqual(
             summary,
             {"haActivaMin": 0, "haActivaMax": 0},
         )
+        self.assertNotIn("ndviMedio", summary)
+        self.assertNotIn("ndmiMedio", summary)
 
     def test_zero_area_console_summary_does_not_require_active_mean(self):
         message = subject.format_active_area_summary(
@@ -214,6 +295,7 @@ class VinchinaNdviTests(unittest.TestCase):
         )
 
         self.assertIn("active-pixel mean NDVI unavailable", message)
+        self.assertIn("active-zone mean NDMI unavailable", message)
 
     def test_active_mean_is_omitted_when_published_area_rounds_to_zero(self):
         summary = subject.summarize_active_area(

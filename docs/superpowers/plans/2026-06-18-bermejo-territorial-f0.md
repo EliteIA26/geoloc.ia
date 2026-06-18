@@ -302,18 +302,18 @@ git commit -m "data(territorial): Vinchina localidades + corredor Pircas Negras 
 
 ---
 
-## Task 4: Sentinel-2 Vinchina pipeline (NDVI + active-area estimate)
+## Task 4: Sentinel-2 Vinchina pipeline (NDVI + active-area estimate + active-zone NDMI)
 
 **Files:**
 - Create: `scripts/vinchina_ndvi.py`
 - Modify: `.github/workflows/satelital.yml` (add the script to the run step)
 
-**Reuses** `scripts/s2_common.py` helpers (`open_catalog`, `find_scenes`, `download_asset`, `read_band_to_4326`, `to_reflectance`, `ROOT`). Bbox for Vinchina's valley: `[-68.40, -28.90, -68.05, -28.60]` (refine to the irrigated area if scenes are mostly bare). NDVI active threshold: `0.25` (arid baseline; pixels above ≈ active vegetation). Output a **range** via ±15% band (arid mixed-pixel uncertainty).
+**Reuses** `scripts/s2_common.py` helpers (`find_scenes`, `download_asset`, `read_band_to_4326`, `to_reflectance`). The query/display bbox is `[-68.40, -28.90, -68.05, -28.60]`, but every scientific statistic is clipped to the `properties.nombre == "Vinchina"` Polygon/MultiPolygon from `public/data/bermejo-deptos.geojson`. Rasterize that boundary on the native-ish analysis grid (`s2_common.DST_RES`) with `all_touched=False`; usable coverage is jointly valid NDVI+NDMI pixels inside that boundary divided by all boundary pixels inside the bbox. NDVI active threshold: `0.25` (arid baseline). NDMI is averaged only over those active NDVI pixels. The ±15% output remains an unvalidated heuristic scenario band, not uncertainty or a confidence interval.
 
 - [ ] **Step 1: Write `scripts/vinchina_ndvi.py`**
 
 ```python
-"""Sentinel-2 NDVI snapshot for Vinchina + observed active-vegetation area estimate.
+"""Sentinel-2 NDVI/NDMI snapshot for the masked Vinchina department boundary.
 Honest: reports a RANGE of active-vegetation hectares (cultivo OR natural), never a crop figure.
 Outputs: public/raster/vinchina-ndvi.png (+ -bounds.json), public/data/vinchina-satelital.json
 """
@@ -324,7 +324,8 @@ from s2_common import open_catalog, find_scenes, download_asset, read_band_to_43
 BBOX = [-68.40, -28.90, -68.05, -28.60]
 NDVI_ACTIVE = 0.25
 REL_MARGIN = 0.15
-RES = 0.0009  # ~100 m grid in degrees; coarse but fine for a demo estimate
+ANALYSIS_RES = 0.0001  # native-ish area/indices grid; must match s2_common.DST_RES
+DISPLAY_RES = 0.0009   # PNG size only; never use for hectare estimates
 
 
 def colorize_ndvi(ndvi, mask):
@@ -350,29 +351,42 @@ def main():
         return
     item = scenes[0]
     fecha = (item.properties.get("datetime") or item.properties.get("start_datetime") or "")[:10]
-    b04 = to_reflectance(read_band_to_4326(download_asset(item, "B04"), BBOX, RES))
-    b08 = to_reflectance(read_band_to_4326(download_asset(item, "B08"), BBOX, RES))
-    valid = (b04 > 0) & (b08 > 0)
+    # Rasterize the exact Vinchina department geometry onto the analysis grid.
+    geometry = load_department_geometry("public/data/bermejo-deptos.geojson", "Vinchina")
+    department = rasterize_department_mask(geometry, BBOX, ANALYSIS_RES)  # all_touched=False
+    b04 = to_reflectance(read_band_to_4326(download_asset(item, "B04"), BBOX, ANALYSIS_RES))
+    b08 = to_reflectance(read_band_to_4326(download_asset(item, "B08"), BBOX, ANALYSIS_RES))
+    b11 = to_reflectance(read_band_to_4326(download_asset(item, "B11"), BBOX, ANALYSIS_RES))
+    scl = read_band_to_4326(download_asset(item, "SCL"), BBOX, ANALYSIS_RES, resampling="nearest")
+    valid = department & clear_land(scl) & (b04 > 0) & (b08 > 0) & (b11 > 0)
     ndvi = np.where(valid, (b08 - b04) / (b08 + b04 + 1e-6), np.nan)
+    ndmi = np.where(valid, (b08 - b11) / (b08 + b11 + 1e-6), np.nan)
+    jointly_valid = department & np.isfinite(ndvi) & np.isfinite(ndmi)
+    ndvi = np.where(jointly_valid, ndvi, np.nan)
+    ndmi = np.where(jointly_valid, ndmi, np.nan)
+    usable_coverage = jointly_valid.sum() / department.sum()
 
     # Active-vegetation area (observed): count active pixels x pixel ground area.
-    active = valid & (ndvi > NDVI_ACTIVE)
+    active = jointly_valid & (ndvi > NDVI_ACTIVE)
     lat0 = (BBOX[1] + BBOX[3]) / 2
-    px_m2 = (RES * 111_320) * (RES * 111_320 * np.cos(np.radians(lat0)))
+    px_m2 = (ANALYSIS_RES * 110_574) * (ANALYSIS_RES * 111_320 * np.cos(np.radians(lat0)))
     ha_central = float(active.sum()) * px_m2 / 10_000.0
 
     out = {
         "fecha": fecha,
         "haActivaMin": round(ha_central * (1 - REL_MARGIN)),
         "haActivaMax": round(ha_central * (1 + REL_MARGIN)),
-        "ndviMedio": round(float(np.nanmean(np.where(active, ndvi, np.nan))) if active.any() else 0.0, 3),
     }
+    if active.any() and out["haActivaMax"] > 0:
+        out["ndviMedio"] = round(float(np.nanmean(ndvi[active])), 3)
+        out["ndmiMedio"] = round(float(np.nanmean(ndmi[active])), 3)
     (ROOT / "public" / "data" / "vinchina-satelital.json").write_text(
         json.dumps(out, ensure_ascii=False), encoding="utf-8")
 
     # Raster PNG + bounds for the map overlay.
     from PIL import Image
-    rgba = colorize_ndvi(np.nan_to_num(ndvi, nan=-1.0), valid)
+    # Outside-boundary pixels remain NaN/transparent; resize only for display.
+    rgba = colorize_ndvi(ndvi, jointly_valid)
     Image.fromarray(rgba, "RGBA").save(ROOT / "public" / "raster" / "vinchina-ndvi.png")
     bounds = {"coordinates": [[BBOX[0], BBOX[3]], [BBOX[2], BBOX[3]], [BBOX[2], BBOX[1]], [BBOX[0], BBOX[1]]], "captura": fecha}
     (ROOT / "public" / "raster" / "vinchina-ndvi-bounds.json").write_text(
@@ -696,6 +710,6 @@ Then watch the run: `gh run watch <id> --exit-status` and confirm `public/data/v
 
 **Placeholder scan:** Task 2 records the curated official values and exact source/reference dates; no `REAL` value placeholders remain. All code steps contain complete code.
 
-**Type consistency:** `Indicador`/`Territorial`/`VinchinaSatelital`/`Confianza` defined in Task 1 are used consistently in Tasks 5 (SourceBadge `Confianza`, IndicatorCard `Indicador`) and 6 (`Territorial`, `Indicador`, `formatAreaRange`). `formatAreaRange(min,max)` signature matches its use in Task 6. `vinchina-satelital.json` written by Task 4 matches `VinchinaSatelitalSchema` (fecha, haActivaMin, haActivaMax, ndviMedio) read in Task 6.
+**Type consistency:** `Indicador`/`Territorial`/`VinchinaSatelital`/`Confianza` defined in Task 1 are used consistently in Tasks 5 (SourceBadge `Confianza`, IndicatorCard `Indicador`) and 6 (`Territorial`, `Indicador`, `formatAreaRange`). `formatAreaRange(min,max)` signature matches its use in Task 6. `vinchina-satelital.json` written by Task 4 matches `VinchinaSatelitalSchema` (fecha, haActivaMin, haActivaMax, optional active-zone ndviMedio/ndmiMedio) read in Task 6.
 
 **Open implementation checks flagged for the worker:** `s2_common.find_scenes` tile arg (Task 4 note); `MapShell`/`ResizableAside` prop shapes (Task 6 Step 2); depto name strings in `departamentos.geojson` (Task 2 Step 3).
