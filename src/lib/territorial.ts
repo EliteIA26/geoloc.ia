@@ -27,13 +27,28 @@ export const TerritorialSchema = z.object({
 });
 export type Territorial = z.infer<typeof TerritorialSchema>;
 
-export const VinchinaSatelitalSchema = z.object({
-  fecha: z.string(),
-  haActivaMin: z.number(),
-  haActivaMax: z.number(),
-  ndviMedio: z.number().optional(),
-  ndmiMedio: z.number().optional(),
-});
+const NonnegativeFiniteNumberSchema = z.number().finite().nonnegative();
+const VegetationIndexSchema = z.number().finite().min(-1).max(1);
+
+export const VinchinaSatelitalSchema = z
+  .object({
+    fecha: z.string(),
+    haActivaMin: NonnegativeFiniteNumberSchema,
+    haActivaMax: NonnegativeFiniteNumberSchema,
+    ndviMedio: VegetationIndexSchema.optional(),
+    ndmiMedio: VegetationIndexSchema.optional(),
+  })
+  .refine((data) => data.haActivaMin <= data.haActivaMax, {
+    message: "haActivaMin must not exceed haActivaMax",
+    path: ["haActivaMin"],
+  })
+  .refine(
+    (data) => !(data.haActivaMax === 0 && data.ndviMedio !== undefined),
+    {
+      message: "ndviMedio requires observed active area",
+      path: ["ndviMedio"],
+    },
+  );
 export type VinchinaSatelital = z.infer<typeof VinchinaSatelitalSchema>;
 
 export function areaBand(
@@ -74,7 +89,7 @@ export function composeVinchinaSatelliteIndicators(
     },
   ];
 
-  if (data.ndviMedio !== undefined) {
+  if (data.ndviMedio !== undefined && data.haActivaMax > 0) {
     indicators.push({
       etiqueta: "NDVI medio (zonas activas)",
       valor: decimalFormatter.format(data.ndviMedio),

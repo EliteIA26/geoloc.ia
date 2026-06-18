@@ -198,15 +198,33 @@ class VinchinaNdviTests(unittest.TestCase):
         self.assertEqual(summary["haActivaMax"], round(central * 1.15))
         self.assertEqual(summary["ndviMedio"], 0.45)
 
-    def test_active_summary_returns_zero_mean_when_no_pixels_exceed_threshold(self):
+    def test_active_summary_omits_mean_when_no_pixels_exceed_threshold(self):
         summary = subject.summarize_active_area(
             np.array([[0.25, -0.1], [np.nan, 0.2]]), 0.0009, -28.75
         )
 
         self.assertEqual(
             summary,
-            {"haActivaMin": 0, "haActivaMax": 0, "ndviMedio": 0},
+            {"haActivaMin": 0, "haActivaMax": 0},
         )
+
+    def test_zero_area_console_summary_does_not_require_active_mean(self):
+        message = subject.format_active_area_summary(
+            {"haActivaMin": 0, "haActivaMax": 0}
+        )
+
+        self.assertIn("active-pixel mean NDVI unavailable", message)
+
+    def test_active_mean_is_omitted_when_published_area_rounds_to_zero(self):
+        summary = subject.summarize_active_area(
+            np.array([[0.5]]),
+            subject.ANALYSIS_RES,
+            -28.75,
+            relative_margin=0,
+        )
+
+        self.assertEqual(summary["haActivaMax"], 0)
+        self.assertNotIn("ndviMedio", summary)
 
     def test_color_ramp_interpolates_stops_and_colors_top_values_green(self):
         ndvi = np.array([[-0.2, 0.0, 0.2, 0.4, 0.6, 0.9, np.nan, 1.1]])

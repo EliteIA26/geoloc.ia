@@ -68,6 +68,47 @@ describe("VinchinaSatelitalSchema", () => {
 
     expect(satelital.haActivaMax).toBe(1360);
   });
+
+  it.each([
+    { haActivaMin: -1, haActivaMax: 10 },
+    { haActivaMin: 10, haActivaMax: -1 },
+    { haActivaMin: 11, haActivaMax: 10 },
+    { haActivaMin: 0, haActivaMax: Number.POSITIVE_INFINITY },
+  ])("rejects invalid active-area ranges: %o", (range) => {
+    expect(
+      VinchinaSatelitalSchema.safeParse({
+        fecha: "2026-05-24",
+        ...range,
+      }).success,
+    ).toBe(false);
+  });
+
+  it.each([
+    { ndviMedio: -1.01 },
+    { ndviMedio: 1.01 },
+    { ndmiMedio: -1.01 },
+    { ndmiMedio: 1.01 },
+  ])("rejects out-of-range vegetation indices: %o", (index) => {
+    expect(
+      VinchinaSatelitalSchema.safeParse({
+        fecha: "2026-05-24",
+        haActivaMin: 10,
+        haActivaMax: 20,
+        ...index,
+      }).success,
+    ).toBe(false);
+  });
+
+  it("rejects an active-zone mean when active area is zero", () => {
+    expect(
+      VinchinaSatelitalSchema.safeParse({
+        fecha: "2026-05-24",
+        haActivaMin: 0,
+        haActivaMax: 0,
+        ndviMedio: 0,
+      }).success,
+    ).toBe(false);
+  });
 });
 
 describe("areaBand", () => {
@@ -124,6 +165,19 @@ describe("composeVinchinaSatelliteIndicators", () => {
     expect(indicators).toHaveLength(1);
     expect(indicators[0].etiqueta).toBe(
       "Área con vegetación activa observada",
+    );
+  });
+
+  it("does not describe an active-zone mean when active area is zero", () => {
+    const indicators = composeVinchinaSatelliteIndicators({
+      fecha: "2026-05-24",
+      haActivaMin: 0,
+      haActivaMax: 0,
+      ndviMedio: 0,
+    });
+
+    expect(indicators.map((indicator) => indicator.etiqueta)).not.toContain(
+      "NDVI medio (zonas activas)",
     );
   });
 });

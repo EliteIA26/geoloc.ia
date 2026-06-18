@@ -124,11 +124,27 @@ def summarize_active_area(
     pixel_hectares = latitude_metres * longitude_metres / 10_000.0
     central_hectares = active_count * pixel_hectares
 
-    return {
+    summary = {
         "haActivaMin": round(central_hectares * (1.0 - relative_margin)),
         "haActivaMax": round(central_hectares * (1.0 + relative_margin)),
-        "ndviMedio": round(float(ndvi[active].mean()), 3) if active_count else 0,
     }
+    if active_count and summary["haActivaMax"] > 0:
+        summary["ndviMedio"] = round(float(ndvi[active].mean()), 3)
+    return summary
+
+
+def format_active_area_summary(summary):
+    """Format an honest console summary when an active-pixel mean may be absent."""
+    mean = summary.get("ndviMedio")
+    mean_text = (
+        f"active-pixel mean NDVI {mean}"
+        if mean is not None
+        else "active-pixel mean NDVI unavailable"
+    )
+    return (
+        f"Observed {ESTIMATE_QUALIFIER} (NDVI > {NDVI_ACTIVE:.2f}): "
+        f"{summary['haActivaMin']}-{summary['haActivaMax']} ha; {mean_text}."
+    )
 
 
 def colorize_ndvi(ndvi):
@@ -384,11 +400,7 @@ def main():
         f"Selected {item.id} ({item.datetime:%Y-%m-%d}); clear usable AOI coverage "
         f"{valid_coverage:.1%}."
     )
-    print(
-        f"Observed {ESTIMATE_QUALIFIER} (NDVI > {NDVI_ACTIVE:.2f}): "
-        f"{summary['haActivaMin']}-{summary['haActivaMax']} ha; "
-        f"active-pixel mean NDVI {summary['ndviMedio']}."
-    )
+    print(format_active_area_summary(summary))
     print(f"Wrote {PNG_PATH}, {BOUNDS_PATH}, and {DATA_PATH}.")
 
 
