@@ -1,0 +1,15 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": { "nombre": "Vinchina", "tipo": "cabecera" },
+      "geometry": { "type": "Point", "coordinates": [-68.20, -28.76] }
+    },
+    {
+      "type": "Feature",
+      "properties": { "nombre": "Jagüé", "tipo": "localidad" },
+      "geometry": { "type": "Point", "coordinates": [-68.50, -28.55] }
+    }
+  ]
+}

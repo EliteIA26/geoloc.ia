@@ -1,0 +1,20 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Corredor RN76 → Paso Pircas Negras",
+        "fuente": "IGN (simplificado)"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-68.20, -28.76],
+          [-68.50, -28.55],
+          [-69.27, -28.07]
+        ]
+      }
+    }
+  ]
+}
