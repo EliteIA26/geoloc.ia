@@ -3,8 +3,10 @@
 The reported hectares are pixels with NDVI > 0.25, an arid-land vegetation
 baseline. The estimate describes observed active vegetation, not crop or
 cultivated area: active pixels may be cultivated or natural vegetation, and
-distinguishing cultivation requires local validation. A +/-15% range makes the
-threshold and degree-grid area uncertainty explicit; it is not a parcel inventory.
+distinguishing cultivation requires local validation. The +/-15% range is an
+unvalidated heuristic scenario band (faixa heurística de cenário), not a
+confidence interval or modeled uncertainty. Threshold sensitivity and field
+validation are required; this is not a parcel inventory.
 """
 
 import io
@@ -22,14 +24,25 @@ REL_MARGIN = 0.15
 NDVI_DENOMINATOR_EPS = 1e-8
 ESTIMATE_QUALIFIER = (
     "active vegetation (cultivated or natural); distinguishing cultivation "
-    "requires local validation"
+    "requires local validation; the +/-15% range is an unvalidated heuristic "
+    "scenario band (faixa heurística de cenário), not a confidence interval or "
+    "modeled uncertainty; threshold sensitivity and field validation are required"
 )
 BBOX = [-68.40, -28.90, -68.05, -28.60]
-RES = 0.0009  # about 100 m in a degree grid at Vinchina's latitude
+ANALYSIS_RES = 0.0001  # s2_common.DST_RES: native-ish ~11 m analysis grid
+DISPLAY_RES = 0.0009  # ~100 m display grid used only to keep the PNG compact
+RES = DISPLAY_RES  # backward-compatible name; never use this for hectare estimates
 MAX_CLOUD = 60
 SCENE_LIMIT = 10
-MIN_BBOX_COVERAGE = 0.90
-MIN_VALID_COVERAGE = 0.80
+MAX_SCENE_ATTEMPTS = 3
+MIN_BBOX_COVERAGE = 0.95
+MIN_CLEAR_COVERAGE = 0.95
+
+# Sentinel-2 Scene Classification Layer classes. Only clear land is usable.
+SCL_CLEAR_LAND_CLASSES = frozenset({4, 5})  # vegetation, bare/not-vegetated
+SCL_REJECTED_CLASSES = frozenset(
+    {0, 1, 2, 3, 6, 7, 8, 9, 10, 11}
+)  # nodata, saturated, dark, shadow, water, unclassified/cloud/cirrus, snow
 
 ROOT = Path(__file__).resolve().parents[1]
 PNG_PATH = ROOT / "public" / "raster" / "vinchina-ndvi.png"
@@ -55,7 +68,13 @@ def bbox_coverage_fraction(scene_bbox, target_bbox):
     return intersection_width * intersection_height / target_area
 
 
-def compute_ndvi(red, nir, to_reflectance):
+def clear_land_mask(scl):
+    """Mask SCL to explicit clear-land classes; reject unknown classes too."""
+    scl = np.asarray(scl)
+    return np.isfinite(scl) & np.isin(scl, tuple(SCL_CLEAR_LAND_CLASSES))
+
+
+def compute_ndvi(red, nir, to_reflectance, quality_mask=None):
     """Compute offset-corrected NDVI and mask missing/nonphysical results."""
     red = np.asarray(red, dtype=np.float64)
     nir = np.asarray(nir, dtype=np.float64)
@@ -71,6 +90,11 @@ def compute_ndvi(red, nir, to_reflectance):
         & (nir_reflectance > 0.0)
         & (denominator > NDVI_DENOMINATOR_EPS)
     )
+    if quality_mask is not None:
+        quality_mask = np.asarray(quality_mask, dtype=bool)
+        if quality_mask.shape != red.shape:
+            raise ValueError("quality mask must match the red/NIR grid")
+        valid_bands &= quality_mask
     ndvi = np.full(red.shape, np.nan, dtype=np.float64)
     np.divide(
         nir_reflectance - red_reflectance,
@@ -133,8 +157,8 @@ def colorize_ndvi(ndvi):
     return rgba
 
 
-def _download_scene_ndvi(s2, item):
-    """Download B04/B08 and return NDVI only after checking valid coverage."""
+def _download_scene_ndvi(s2, item, analysis_res):
+    """Download B04/B08/SCL and return quality-masked native-ish NDVI."""
     temp_root = "C:/Temp" if os.path.isdir("C:/Temp") else None
     with tempfile.TemporaryDirectory(prefix="vinchina_ndvi_", dir=temp_root) as tmp:
         print(f"Downloading B04 (red) for {item.id} ...")
@@ -145,18 +169,61 @@ def _download_scene_ndvi(s2, item):
         nir_path = s2.download_asset(
             item.assets["B08"].href, os.path.join(tmp, "B08.tif")
         )
-        red = s2.read_band_to_4326(red_path, BBOX, RES)
-        nir = s2.read_band_to_4326(nir_path, BBOX, RES)
-
-    ndvi = compute_ndvi(red, nir, s2.to_reflectance)
-    valid_count = int(np.isfinite(ndvi).sum())
-    valid_coverage = valid_count / ndvi.size if ndvi.size else 0.0
-    if valid_count == 0 or valid_coverage < MIN_VALID_COVERAGE:
-        raise ValueError(
-            f"scene {item.id} has inadequate valid coverage: "
-            f"{valid_coverage:.1%} (required {MIN_VALID_COVERAGE:.0%})"
+        print(f"Downloading SCL (scene classification) for {item.id} ...")
+        scl_path = s2.download_asset(
+            item.assets["SCL"].href, os.path.join(tmp, "SCL.tif")
         )
-    return ndvi, valid_coverage
+        red = s2.read_band_to_4326(red_path, BBOX, analysis_res)
+        nir = s2.read_band_to_4326(nir_path, BBOX, analysis_res)
+        scl = s2.read_band_to_4326(
+            scl_path,
+            BBOX,
+            analysis_res,
+            resampling=s2.Resampling.nearest,
+        )
+
+    ndvi = compute_ndvi(
+        red,
+        nir,
+        s2.to_reflectance,
+        quality_mask=clear_land_mask(scl),
+    )
+    valid_count = int(np.isfinite(ndvi).sum())
+    usable_coverage = valid_count / ndvi.size if ndvi.size else 0.0
+    return ndvi, usable_coverage
+
+
+def select_scene_by_usable_coverage(
+    candidates,
+    loader,
+    min_coverage=MIN_CLEAR_COVERAGE,
+    max_attempts=MAX_SCENE_ATTEMPTS,
+    report=print,
+):
+    """Select the newest candidate with near-complete clear usable AOI coverage."""
+    rejections = []
+    attempted = candidates[:max_attempts]
+    for item in attempted:
+        ndvi, coverage = loader(item)
+        cloud = round(float(item.properties.get("eo:cloud_cover", 0) or 0), 1)
+        if coverage >= min_coverage:
+            report(
+                f"Accepted {item.id}: granule cloud={cloud}% / "
+                f"clear usable AOI={coverage:.1%}."
+            )
+            return item, ndvi, coverage
+        reason = (
+            f"{item.id}: granule cloud={cloud}% / clear usable AOI={coverage:.1%} "
+            f"(< {min_coverage:.0%})"
+        )
+        rejections.append(reason)
+        report(f"Rejected {reason}.")
+
+    details = "; ".join(rejections) or "no candidates attempted"
+    raise ValueError(
+        f"No scene reached {min_coverage:.0%} clear usable AOI coverage after "
+        f"{len(attempted)} of at most {max_attempts} attempts: {details}"
+    )
 
 
 def _coordinates_for_bbox():
@@ -178,7 +245,15 @@ def _write_outputs_atomically(ndvi, item, valid_coverage, summary):
     from PIL import Image
 
     png_buffer = io.BytesIO()
-    Image.fromarray(colorize_ndvi(ndvi), "RGBA").save(png_buffer, format="PNG")
+    west, south, east, north = BBOX
+    display_size = (
+        int(round((east - west) / DISPLAY_RES)),
+        int(round((north - south) / DISPLAY_RES)),
+    )
+    display_image = Image.fromarray(colorize_ndvi(ndvi), "RGBA").resize(
+        display_size, resample=Image.Resampling.LANCZOS
+    )
+    display_image.save(png_buffer, format="PNG")
     date = item.datetime.strftime("%Y-%m-%d")
     cloud = round(float(item.properties.get("eo:cloud_cover", 0) or 0), 1)
     bounds = {
@@ -242,32 +317,28 @@ def main():
             f"(required {MIN_BBOX_COVERAGE:.0%} bbox coverage)."
         )
 
-    selected = None
-    rejected = []
-    for item in candidates:
-        try:
-            ndvi, valid_coverage = _download_scene_ndvi(s2, item)
-        except ValueError as error:
-            rejected.append(str(error))
-            print(f"Skipping {item.id}: {error}")
-            continue
-        selected = (item, ndvi, valid_coverage)
-        break
-    if selected is None:
-        details = "; ".join(rejected) or "no candidate could be processed"
-        raise SystemExit(f"No Vinchina scene had adequate valid coverage: {details}")
+    if not math.isclose(s2.DST_RES, ANALYSIS_RES, rel_tol=0.0, abs_tol=1e-12):
+        raise SystemExit(
+            f"Analysis resolution {ANALYSIS_RES} no longer matches "
+            f"s2_common.DST_RES {s2.DST_RES}."
+        )
+    try:
+        item, ndvi, valid_coverage = select_scene_by_usable_coverage(
+            candidates,
+            lambda candidate: _download_scene_ndvi(s2, candidate, s2.DST_RES),
+        )
+    except ValueError as error:
+        raise SystemExit(str(error)) from error
 
-    item, ndvi, valid_coverage = selected
     latitude = (BBOX[1] + BBOX[3]) / 2.0
-    summary = summarize_active_area(ndvi, RES, latitude)
+    summary = summarize_active_area(ndvi, s2.DST_RES, latitude)
     _write_outputs_atomically(ndvi, item, valid_coverage, summary)
     print(
-        f"Selected {item.id} ({item.datetime:%Y-%m-%d}); valid coverage "
+        f"Selected {item.id} ({item.datetime:%Y-%m-%d}); clear usable AOI coverage "
         f"{valid_coverage:.1%}."
     )
     print(
-        f"Observed {ESTIMATE_QUALIFIER} (NDVI > "
-        f"{NDVI_ACTIVE:.2f}, +/-{REL_MARGIN:.0%} threshold/area uncertainty): "
+        f"Observed {ESTIMATE_QUALIFIER} (NDVI > {NDVI_ACTIVE:.2f}): "
         f"{summary['haActivaMin']}-{summary['haActivaMax']} ha; "
         f"active-pixel mean NDVI {summary['ndviMedio']}."
     )

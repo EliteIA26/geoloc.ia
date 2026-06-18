@@ -2,6 +2,7 @@ import math
 import os
 import sys
 import unittest
+from types import SimpleNamespace
 
 import numpy as np
 
@@ -10,6 +11,78 @@ import vinchina_ndvi as subject
 
 
 class VinchinaNdviTests(unittest.TestCase):
+    def test_scl_mask_allows_only_clear_land_classes(self):
+        scl = np.arange(12, dtype=np.uint8)
+        usable = subject.clear_land_mask(scl)
+
+        self.assertEqual(
+            usable.tolist(),
+            [False, False, False, False, True, True, False, False,
+             False, False, False, False],
+        )
+        self.assertEqual(subject.SCL_CLEAR_LAND_CLASSES, frozenset({4, 5}))
+        self.assertEqual(
+            subject.SCL_REJECTED_CLASSES,
+            frozenset({0, 1, 2, 3, 6, 7, 8, 9, 10, 11}),
+        )
+
+    def test_quality_mask_excludes_otherwise_valid_ndvi_pixels(self):
+        red = np.array([[3000.0, 3000.0]])
+        nir = np.array([[5000.0, 5000.0]])
+        quality = np.array([[True, False]])
+        ndvi = subject.compute_ndvi(
+            red,
+            nir,
+            to_reflectance=lambda values: (values - 1000.0) / 10000.0,
+            quality_mask=quality,
+        )
+
+        self.assertTrue(np.isfinite(ndvi[0, 0]))
+        self.assertTrue(np.isnan(ndvi[0, 1]))
+
+    def test_scene_selection_rejects_low_coverage_and_uses_newest_passing_scene(self):
+        items = [
+            SimpleNamespace(id="newest", properties={"eo:cloud_cover": 4}),
+            SimpleNamespace(id="passing", properties={"eo:cloud_cover": 12}),
+            SimpleNamespace(id="older", properties={"eo:cloud_cover": 2}),
+        ]
+        coverages = {"newest": 0.94, "passing": 0.97, "older": 0.99}
+        calls = []
+
+        def loader(item):
+            calls.append(item.id)
+            return np.array([[0.4]]), coverages[item.id]
+
+        selected, _, coverage = subject.select_scene_by_usable_coverage(
+            items, loader, min_coverage=0.95, max_attempts=3, report=lambda _line: None
+        )
+
+        self.assertEqual(selected.id, "passing")
+        self.assertEqual(coverage, 0.97)
+        self.assertEqual(calls, ["newest", "passing"])
+
+    def test_scene_selection_caps_attempts_and_fails_without_usable_scene(self):
+        items = [
+            SimpleNamespace(id=f"scene-{index}", properties={"eo:cloud_cover": index})
+            for index in range(4)
+        ]
+        calls = []
+
+        def loader(item):
+            calls.append(item.id)
+            return np.array([[0.4]]), 0.90
+
+        with self.assertRaisesRegex(ValueError, "3"):
+            subject.select_scene_by_usable_coverage(
+                items,
+                loader,
+                min_coverage=0.95,
+                max_attempts=3,
+                report=lambda _line: None,
+            )
+
+        self.assertEqual(calls, ["scene-0", "scene-1", "scene-2"])
+
     def test_bbox_coverage_fraction_rejects_sliver_scenes(self):
         target = [-68.40, -28.90, -68.05, -28.60]
 
@@ -54,6 +127,31 @@ class VinchinaNdviTests(unittest.TestCase):
 
         self.assertIn("cultivated or natural", wording)
         self.assertIn("local validation", wording)
+        self.assertIn("unvalidated heuristic scenario band", wording)
+        self.assertIn("threshold sensitivity", wording)
+        self.assertIn("field validation", wording)
+
+    def test_area_summary_uses_native_analysis_resolution(self):
+        analysis_resolution = subject.ANALYSIS_RES
+        display_resolution = subject.DISPLAY_RES
+        ndvi = np.full((10, 10), 0.5)
+        latitude = -28.75
+
+        summary = subject.summarize_active_area(
+            ndvi, analysis_resolution, latitude, relative_margin=0
+        )
+
+        pixel_hectares = (
+            111_320.0
+            * 0.0001
+            * math.cos(math.radians(latitude))
+            * 110_574.0
+            * 0.0001
+            / 10_000.0
+        )
+        self.assertEqual(analysis_resolution, 0.0001)
+        self.assertEqual(display_resolution, 0.0009)
+        self.assertEqual(summary["haActivaMin"], round(100 * pixel_hectares))
 
     def test_active_summary_uses_ground_area_margin_and_active_only_mean(self):
         ndvi = np.array([[0.25, 0.30], [0.60, np.nan]])
