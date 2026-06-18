@@ -350,6 +350,7 @@ export default function BermejoPage() {
 
   return (
     <main className="flex h-dvh w-full flex-col overflow-hidden bg-background md:flex-row">
+      <h1 className="sr-only">Inteligencia territorial del Valle del Bermejo</h1>
       <section
         className="relative h-[55dvh] min-h-0 shrink-0 md:h-auto md:min-w-0 md:flex-1"
         aria-label="Mapa territorial del Valle del Bermejo"
@@ -373,9 +374,9 @@ export default function BermejoPage() {
           <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-primary">
             Plan de Desarrollo Productivo · Valle del Bermejo
           </p>
-          <h1 className="text-xl font-semibold tracking-tight">
+          <h2 className="text-xl font-semibold tracking-tight">
             Vinchina · Valle del Bermejo
-          </h1>
+          </h2>
           {territorial.status === "ready" ? (
             <p className="text-sm leading-6 text-muted-foreground">
               {territorial.data.resumen ?? "Resumen territorial no disponible."}

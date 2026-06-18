@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   findLayerInsertionPoint,
@@ -27,6 +28,53 @@ describe("isGeoJson", () => {
     expect(isGeoJson({ type: "FeatureCollection" })).toBe(false);
     expect(isGeoJson({ type: "Feature", properties: {} })).toBe(false);
     expect(isGeoJson({ type: "Point" })).toBe(false);
+  });
+
+  it.each([
+    { type: "LineString", coordinates: [-68, -28] },
+    { type: "MultiPoint", coordinates: [[[-68, -28]]] },
+    {
+      type: "MultiLineString",
+      coordinates: [
+        [-68, -28],
+        [-68.1, -28.1],
+      ],
+    },
+    {
+      type: "Polygon",
+      coordinates: [
+        [-68, -28],
+        [-68.1, -28.1],
+        [-68, -28],
+      ],
+    },
+    {
+      type: "MultiPolygon",
+      coordinates: [
+        [
+          [-68, -28],
+          [-68.1, -28.1],
+          [-68, -28],
+        ],
+      ],
+    },
+  ])("rejects coordinates at the wrong depth: %o", (geometry) => {
+    expect(isGeoJson(geometry)).toBe(false);
+  });
+
+  it.each([
+    "bermejo-deptos.geojson",
+    "corredor-pircas-negras.geojson",
+    "vinchina-localidades.geojson",
+  ])("accepts the repository asset %s", (filename) => {
+    const asset: unknown = JSON.parse(
+      readFileSync(
+        new URL(`../../public/data/${filename}`, import.meta.url),
+        "utf8",
+      ),
+    );
+
+    expect(isGeoJson(asset)).toBe(true);
   });
 });
 

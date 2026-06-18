@@ -1,4 +1,4 @@
-import type { Feature, GeoJSON, Geometry } from "geojson";
+import type { Feature, GeoJSON, Geometry, Position } from "geojson";
 
 export type ImageCoordinates = [
   [number, number],
@@ -45,7 +45,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
 
-function isPosition(value: unknown): boolean {
+function isPosition(value: unknown): value is Position {
   return (
     Array.isArray(value) &&
     value.length >= 2 &&
@@ -56,36 +56,48 @@ function isPosition(value: unknown): boolean {
   );
 }
 
-function isCoordinateTree(value: unknown): boolean {
+function isPositionArray(value: unknown): value is Position[] {
   return (
-    Array.isArray(value) &&
-    (value.length === 0 ||
-      isPosition(value) ||
-      value.every((coordinates) => isCoordinateTree(coordinates)))
+    Array.isArray(value) && value.every((position) => isPosition(position))
   );
+}
+
+function isPositionArray2D(value: unknown): value is Position[][] {
+  return Array.isArray(value) && value.every(isPositionArray);
+}
+
+function isPositionArray3D(value: unknown): value is Position[][][] {
+  return Array.isArray(value) && value.every(isPositionArray2D);
 }
 
 function isGeometry(value: unknown): value is Geometry {
   if (!isRecord(value) || typeof value.type !== "string") return false;
 
-  if (value.type === "GeometryCollection") {
-    return (
-      Array.isArray(value.geometries) && value.geometries.every(isGeometry)
-    );
+  switch (value.type) {
+    case "Point":
+      return isPosition(value.coordinates);
+    case "MultiPoint":
+      return isPositionArray(value.coordinates);
+    case "LineString":
+      return (
+        isPositionArray(value.coordinates) && value.coordinates.length >= 2
+      );
+    case "MultiLineString":
+      return (
+        isPositionArray2D(value.coordinates) &&
+        value.coordinates.every((line) => line.length >= 2)
+      );
+    case "Polygon":
+      return isPositionArray2D(value.coordinates);
+    case "MultiPolygon":
+      return isPositionArray3D(value.coordinates);
+    case "GeometryCollection":
+      return (
+        Array.isArray(value.geometries) && value.geometries.every(isGeometry)
+      );
+    default:
+      return false;
   }
-  if (value.type === "Point") return isPosition(value.coordinates);
-  if (
-    [
-      "MultiPoint",
-      "LineString",
-      "MultiLineString",
-      "Polygon",
-      "MultiPolygon",
-    ].includes(value.type)
-  ) {
-    return isCoordinateTree(value.coordinates);
-  }
-  return false;
 }
 
 function isFeature(value: unknown): value is Feature {
