@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type maplibregl from "maplibre-gl";
 import MapShell from "@/components/map-shell";
 import NdviTimeSeries from "@/components/ndvi-time-series";
@@ -14,7 +14,8 @@ import type { Pronostico } from "@/lib/pronostico";
 import { RIESGO_LABEL } from "@/lib/agroclimate";
 import TrendBadge from "@/components/trend-badge";
 import ResizableAside from "@/components/resizable-aside";
-import { fetchSatelital, type Satelital } from "@/lib/satelital";
+import { fetchSatelital, fetchAimogastaSeries, type Satelital, type Escena } from "@/lib/satelital";
+import ScenePicker from "@/components/premium/scene-picker";
 
 type GeoJSONFeature = {
   properties: {
@@ -45,6 +46,10 @@ export default function ProducerView() {
   const [data, setData] = useState<Pronostico | null>(null);
   const [estado, setEstado] = useState<"loading" | "ok" | "error">("loading");
   const [sat, setSat] = useState<Satelital | null>(null);
+  const [escenas, setEscenas] = useState<Escena[]>([]);
+  const [selectedFecha, setSelectedFecha] = useState<string | null>(null);
+  const [mapReady, setMapReady] = useState(false);
+  const mapRef = useRef<maplibregl.Map | null>(null);
 
   useEffect(() => {
     fetchJson("/data/series-ndvi.json", SeriesSchema)
@@ -54,6 +59,16 @@ export default function ProducerView() {
 
   useEffect(() => {
     fetchSatelital().then(setSat);
+  }, []);
+
+  // Available satellite scenes (Incremento 4). Newest first; default to it.
+  useEffect(() => {
+    fetchAimogastaSeries().then((s) => {
+      if (s && s.escenas.length > 0) {
+        setEscenas(s.escenas);
+        setSelectedFecha(s.escenas[0].fecha);
+      }
+    });
   }, []);
 
   const last = serie.at(-1) ?? 0.5;
@@ -78,6 +93,7 @@ export default function ProducerView() {
   }, [last]);
 
   const addFincaLayers = useCallback(async (map: maplibregl.Map) => {
+    mapRef.current = map;
     const gj = (await fetch("/data/fincas-aimogasta.geojson").then((r) => r.json())) as GeoJSONCollection;
     map.addSource("fincas", { type: "geojson", data: gj as unknown as maplibregl.GeoJSONSourceSpecification["data"] });
     map.addLayer({
@@ -98,7 +114,23 @@ export default function ProducerView() {
     } catch (e) {
       console.warn("NDVI overlay skipped", e);
     }
+    setMapReady(true);
   }, []);
+
+  // Swap the NDVI raster image when the user picks a different scene date.
+  // esc.png is already a root-absolute path (/raster/…) from the manifest.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady || !selectedFecha) return;
+    const esc = escenas.find((e) => e.fecha === selectedFecha);
+    const src = map.getSource("finca-ndvi") as maplibregl.ImageSource | undefined;
+    if (esc && src) {
+      src.updateImage({
+        url: esc.png,
+        coordinates: esc.coordinates as [[number, number], [number, number], [number, number], [number, number]],
+      });
+    }
+  }, [mapReady, selectedFecha, escenas]);
 
   // Signals from the route + NDMI (vegetation moisture) from the satellite
   // snapshot when available (Incremento 2). Both degrade gracefully if absent.
@@ -137,6 +169,13 @@ export default function ProducerView() {
             </div>
           )}
         </div>
+
+        {escenas.length > 0 && selectedFecha && (
+          <div className="glass-panel space-y-2 p-3">
+            <div className="text-xs text-muted-foreground">Imagen satelital · elegí la fecha</div>
+            <ScenePicker escenas={escenas} selected={selectedFecha} onSelect={setSelectedFecha} />
+          </div>
+        )}
 
         {/* Insight first: the forecast recommendation opens the view. */}
         {estado === "loading" && (
