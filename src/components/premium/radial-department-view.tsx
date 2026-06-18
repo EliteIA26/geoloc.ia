@@ -1,8 +1,6 @@
 "use client";
 
 import { motion, type Variants } from "framer-motion";
-import { useEffect, useState } from "react";
-import type maplibregl from "maplibre-gl";
 import type { DepartamentoProps } from "@/lib/departamentos";
 import { vegetationStatus, vegetationSentence, vegetationDotClass } from "@/lib/vegetation";
 import { buildSparklinePath } from "@/lib/sparkline";
@@ -16,59 +14,13 @@ export default function RadialDepartmentView({
   prov,
   sat,
   onClear,
-  map,
-  bounds,
 }: {
   dep: DepartamentoProps | null;
   serie: number[];
   prov: ProvinciaNdvi | null;
   sat: Satelital | null;
   onClear: () => void;
-  map?: maplibregl.Map | null;
-  bounds?: maplibregl.LngLatBounds | null;
 }) {
-  const [lineCoords, setLineCoords] = useState({
-    tl: { x: "40%", y: "40%" },
-    tr: { x: "60%", y: "40%" },
-    bl: { x: "40%", y: "60%" },
-    br: { x: "60%", y: "60%" }
-  });
-
-  useEffect(() => {
-    if (!map || !bounds) return;
-
-    // Use geographic points slightly inset from the bounds to anchor the lines
-    const centerLat = (bounds.getNorth() + bounds.getSouth()) / 2;
-    const centerLng = (bounds.getEast() + bounds.getWest()) / 2;
-    const nLat = (bounds.getNorth() * 2 + centerLat) / 3;
-    const sLat = (bounds.getSouth() * 2 + centerLat) / 3;
-    const wLng = (bounds.getWest() * 2 + centerLng) / 3;
-    const eLng = (bounds.getEast() * 2 + centerLng) / 3;
-
-    const updateLines = () => {
-      const nw = map.project([wLng, nLat]);
-      const ne = map.project([eLng, nLat]);
-      const sw = map.project([wLng, sLat]);
-      const se = map.project([eLng, sLat]);
-
-      setLineCoords({
-        tl: { x: `${nw.x}px`, y: `${nw.y}px` },
-        tr: { x: `${ne.x}px`, y: `${ne.y}px` },
-        bl: { x: `${sw.x}px`, y: `${sw.y}px` },
-        br: { x: `${se.x}px`, y: `${se.y}px` },
-      });
-    };
-
-    updateLines();
-    map.on('move', updateLines);
-    map.on('zoom', updateLines);
-
-    return () => {
-      map.off('move', updateLines);
-      map.off('zoom', updateLines);
-    };
-  }, [map, bounds]);
-
   if (!dep) return null;
 
   const modisNdvi = prov?.deptos[dep.nombre];

@@ -103,9 +103,6 @@ function getBounds(geometry: GeoJSON.Geometry) {
 
 export default function PanelPage() {
   const mapRef = useRef<maplibregl.Map | null>(null);
-  // State mirror of the map instance, for passing to children during render
-  // (reading mapRef.current in JSX violates react-hooks/refs).
-  const [mapInstance, setMapInstance] = useState<maplibregl.Map | null>(null);
   const orbitState = useRef({ isDragging: false, startX: 0, startY: 0, startBearing: 0, startPitch: 0 });
   const [layer, setLayer] = useState<LayerKey>("ndvi");
   const [captura, setCaptura] = useState<string | null>(null);
@@ -152,7 +149,6 @@ export default function PanelPage() {
     fetchProvinciaNdvi().then(setProv);
   }, []);
 
-  const [selectedBounds, setSelectedBounds] = useState<maplibregl.LngLatBounds | null>(null);
 
   // Derive the selected department object.
   const selectedDep = selected
@@ -227,7 +223,6 @@ export default function PanelPage() {
 
   const handleReady = useCallback(async (map: maplibregl.Map) => {
     mapRef.current = map;
-    setMapInstance(map);
     const gj = (await fetch("/data/departamentos.geojson").then((r) => r.json())) as GeoJSONCollection;
     for (const f of gj.features) {
       f.properties.colorNdvi = ndviToColor(f.properties.ndvi);
@@ -305,8 +300,7 @@ export default function PanelPage() {
           setSelected(nombre);
           if (feature?.geometry) {
             const bounds = getBounds(feature.geometry);
-            setSelectedBounds(bounds);
-            
+
             // Add slight margin to bounds so the user can see the edges
             const paddedBounds = new maplibregl.LngLatBounds(
               bounds.getSouthWest(), bounds.getNorthEast()
@@ -547,11 +541,8 @@ export default function PanelPage() {
                   serie={serie}
                   prov={prov}
                   sat={sat}
-                  map={mapInstance}
-                  bounds={selectedBounds}
                   onClear={() => {
                     setSelected(null);
-                    setSelectedBounds(null);
                     if (mapRef.current) mapRef.current.setMaxBounds(null);
                   }}
                 />
