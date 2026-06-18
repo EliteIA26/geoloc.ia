@@ -1,7 +1,8 @@
 """Sentinel-2 indices and active-vegetation estimate for Vinchina.
 
-Every output is clipped to the Vinchina department boundary inside the query
-bbox. Reported hectares are pixels with NDVI > 0.25, an arid-land vegetation
+Every output covers the intersection of the Vinchina department with the
+monitored Valle del Bermejo window; it does not cover the whole department.
+Reported hectares are pixels with NDVI > 0.25, an arid-land vegetation
 baseline; active-zone NDMI is averaged only over those same pixels. The estimate
 describes observed active vegetation, not crop or cultivated area: active pixels
 may be cultivated or natural vegetation, and distinguishing cultivation requires
@@ -18,6 +19,7 @@ import os
 import sys
 import tempfile
 from pathlib import Path
+from urllib.parse import quote
 
 import numpy as np
 
@@ -31,6 +33,14 @@ ESTIMATE_QUALIFIER = (
     "modeled uncertainty; threshold sensitivity and field validation are required"
 )
 BBOX = [-68.40, -28.90, -68.05, -28.60]
+MONITORED_SCOPE = (
+    "Intersección del departamento Vinchina con la ventana monitoreada del "
+    "Valle del Bermejo. No representa todo el departamento."
+)
+STAC_ITEM_BASE_URL = (
+    "https://planetarycomputer.microsoft.com/api/stac/v1/collections/"
+    "sentinel-2-l2a/items"
+)
 ANALYSIS_RES = 0.0001  # s2_common.DST_RES: native-ish ~11 m analysis grid
 DISPLAY_RES = 0.0009  # ~100 m display grid used only to keep the PNG compact
 RES = DISPLAY_RES  # backward-compatible name; never use this for hectare estimates
@@ -268,7 +278,8 @@ def format_active_area_summary(summary):
         else "active-zone mean NDMI unavailable"
     )
     return (
-        f"Observed {ESTIMATE_QUALIFIER} within the Vinchina department boundary "
+        f"Observed {ESTIMATE_QUALIFIER} within the monitored Valle del Bermejo "
+        "window intersected with Vinchina (not the whole department) "
         f"(NDVI > {NDVI_ACTIVE:.2f}): {summary['haActivaMin']}-"
         f"{summary['haActivaMax']} ha; {mean_text}; {ndmi_text}."
     )
@@ -447,6 +458,22 @@ def _json_bytes(value):
     return (json.dumps(value, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
 
 
+def build_output_metadata(item, valid_coverage):
+    """Build the shared, auditable AOI and selected-scene metadata."""
+    scene_id = getattr(item, "id", None)
+    if not isinstance(scene_id, str) or not scene_id.strip():
+        raise ValueError("selected STAC item must have a non-empty string id")
+    if not math.isfinite(valid_coverage) or not 0.0 <= valid_coverage <= 1.0:
+        raise ValueError("valid coverage must be a finite fraction from 0 to 1")
+    return {
+        "alcance": MONITORED_SCOPE,
+        "bbox": BBOX.copy(),
+        "sceneId": scene_id,
+        "coberturaValidaPct": round(valid_coverage * 100.0, 1),
+        "sceneUrl": f"{STAC_ITEM_BASE_URL}/{quote(scene_id, safe='')}",
+    }
+
+
 def _write_outputs_atomically(ndvi, item, valid_coverage, summary):
     """Stage all artifacts before replacing any published output."""
     from PIL import Image
@@ -463,16 +490,16 @@ def _write_outputs_atomically(ndvi, item, valid_coverage, summary):
     display_image.save(png_buffer, format="PNG")
     date = item.datetime.strftime("%Y-%m-%d")
     cloud = round(float(item.properties.get("eo:cloud_cover", 0) or 0), 1)
+    audit = build_output_metadata(item, valid_coverage)
     bounds = {
         "coordinates": _coordinates_for_bbox(),
         "captura": date,
-        "sceneId": item.id,
         "nubes": cloud,
-        "coberturaValidaPct": round(valid_coverage * 100.0, 1),
-        "mascaraAOI": "límite departamental de Vinchina",
+        **audit,
+        "mascaraAOI": "Vinchina dentro de la ventana monitoreada del Valle del Bermejo",
         "ndmiMedioZona": f"vegetación activa NDVI > {NDVI_ACTIVE:.2f}",
     }
-    data = {"fecha": date, **summary}
+    data = {"fecha": date, **audit, **summary}
     payloads = [
         (PNG_PATH, png_buffer.getvalue()),
         (BOUNDS_PATH, _json_bytes(bounds)),
@@ -560,8 +587,9 @@ def main():
     )
     _write_outputs_atomically(ndvi, item, valid_coverage, summary)
     print(
-        f"Selected {item.id} ({item.datetime:%Y-%m-%d}); clear usable Vinchina "
-        "boundary coverage "
+        f"Selected {item.id} ({item.datetime:%Y-%m-%d}); clear usable coverage "
+        "of the monitored Valle del Bermejo window intersected with Vinchina "
+        "(not the whole department) "
         f"{valid_coverage:.1%}."
     )
     print(format_active_area_summary(summary))

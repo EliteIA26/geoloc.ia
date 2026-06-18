@@ -30,10 +30,35 @@ export type Territorial = z.infer<typeof TerritorialSchema>;
 
 const NonnegativeFiniteNumberSchema = z.number().finite().nonnegative();
 const VegetationIndexSchema = z.number().finite().min(-1).max(1);
+const LongitudeSchema = z.number().finite().min(-180).max(180);
+const LatitudeSchema = z.number().finite().min(-90).max(90);
+
+export const VINCHINA_MONITORED_SCOPE =
+  "Intersección del departamento Vinchina con la ventana monitoreada del Valle del Bermejo. No representa todo el departamento.";
 
 export const VinchinaSatelitalSchema = z
   .object({
     fecha: z.string(),
+    alcance: z
+      .string()
+      .min(1)
+      .refine(
+        (value) =>
+          value.includes("ventana monitoreada") &&
+          value.includes("No representa todo el departamento"),
+        { message: "alcance must disclose the monitored window limitation" },
+      ),
+    bbox: z.tuple([
+      LongitudeSchema,
+      LatitudeSchema,
+      LongitudeSchema,
+      LatitudeSchema,
+    ]),
+    sceneId: z.string().refine((value) => value.trim().length > 0, {
+      message: "sceneId must not be blank",
+    }),
+    coberturaValidaPct: z.number().finite().min(0).max(100),
+    sceneUrl: z.url({ protocol: /^https?$/ }),
     haActivaMin: NonnegativeFiniteNumberSchema,
     haActivaMax: NonnegativeFiniteNumberSchema,
     ndviMedio: VegetationIndexSchema.optional(),
@@ -44,9 +69,46 @@ export const VinchinaSatelitalSchema = z
     path: ["haActivaMin"],
   })
   .superRefine((data, context) => {
-    if (data.haActivaMax !== 0) return;
-    for (const field of ["ndviMedio", "ndmiMedio"] as const) {
-      if (data[field] !== undefined) {
+    const [west, south, east, north] = data.bbox;
+    if (west >= east) {
+      context.addIssue({
+        code: "custom",
+        message: "bbox west must be less than east",
+        path: ["bbox"],
+      });
+    }
+    if (south >= north) {
+      context.addIssue({
+        code: "custom",
+        message: "bbox south must be less than north",
+        path: ["bbox"],
+      });
+    }
+
+    const itemPathSegment = new URL(data.sceneUrl).pathname.split("/").at(-1);
+    let decodedItemPathSegment: string | undefined;
+    try {
+      decodedItemPathSegment =
+        itemPathSegment === undefined
+          ? undefined
+          : decodeURIComponent(itemPathSegment);
+    } catch {
+      decodedItemPathSegment = undefined;
+    }
+    if (
+      decodedItemPathSegment === undefined ||
+      decodedItemPathSegment !== data.sceneId
+    ) {
+      context.addIssue({
+        code: "custom",
+        message: "sceneUrl must identify the exact sceneId",
+        path: ["sceneUrl"],
+      });
+    }
+
+    if (data.haActivaMax === 0) {
+      for (const field of ["ndviMedio", "ndmiMedio"] as const) {
+        if (data[field] === undefined) continue;
         context.addIssue({
           code: "custom",
           message: `${field} requires observed active area`,
@@ -80,18 +142,22 @@ const decimalFormatter = new Intl.NumberFormat("es-AR", {
   maximumFractionDigits: 2,
 });
 
+const coverageFormatter = new Intl.NumberFormat("es-AR", {
+  maximumFractionDigits: 1,
+});
+
 export function composeVinchinaSatelliteIndicators(
   data: VinchinaSatelital,
 ): Indicador[] {
   const indicators: Indicador[] = [
     {
-      etiqueta: "Área con vegetación activa observada",
+      etiqueta: "Área con vegetación activa observada · valle monitoreado",
       valor: formatAreaRange(data.haActivaMin, data.haActivaMax),
       fonte: "Sentinel-2 (Copernicus)",
       fecha: data.fecha,
       confianza: "estimado",
-      nota:
-        "Rango heurístico no validado (banda de escenario ±15%). La vegetación puede ser cultivada o natural; distinguir cultivos requiere validación local.",
+      nota: `${data.alcance} Cobertura válida de la escena: ${coverageFormatter.format(data.coberturaValidaPct)}%. Rango heurístico no validado (banda de escenario ±15%). La vegetación puede ser cultivada o natural; distinguir cultivos requiere validación local.`,
+      url: data.sceneUrl,
     },
   ];
 
@@ -102,6 +168,7 @@ export function composeVinchinaSatelliteIndicators(
       fonte: "Sentinel-2 (Copernicus)",
       fecha: data.fecha,
       confianza: "observado",
+      url: data.sceneUrl,
     });
   }
 
@@ -114,6 +181,7 @@ export function composeVinchinaSatelliteIndicators(
       confianza: "observado",
       nota:
         "Proxy de humedad de la vegetación activa; no mide directamente uso de agua ni producción.",
+      url: data.sceneUrl,
     });
   }
 

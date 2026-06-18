@@ -8,6 +8,26 @@ import {
   formatAreaRange,
 } from "./territorial";
 
+const satelliteAudit = {
+  alcance:
+    "Intersección del departamento Vinchina con la ventana monitoreada del Valle del Bermejo. No representa todo el departamento.",
+  bbox: [-68.4, -28.9, -68.05, -28.6] as [number, number, number, number],
+  sceneId: "S2A_20260524_VINCHINA",
+  coberturaValidaPct: 97.3,
+  sceneUrl:
+    "https://planetarycomputer.microsoft.com/api/stac/v1/collections/sentinel-2-l2a/items/S2A_20260524_VINCHINA",
+};
+
+function satellitePayload(overrides: Record<string, unknown> = {}) {
+  return {
+    ...satelliteAudit,
+    fecha: "2026-05-24",
+    haActivaMin: 1240,
+    haActivaMax: 1360,
+    ...overrides,
+  };
+}
+
 describe("TerritorialSchema", () => {
   it("parses territorial indicators and confidence levels", () => {
     const territorial = TerritorialSchema.parse({
@@ -60,14 +80,13 @@ describe("TerritorialSchema", () => {
 
 describe("VinchinaSatelitalSchema", () => {
   it("parses the active-area range and optional indices", () => {
-    const satelital = VinchinaSatelitalSchema.parse({
-      fecha: "2026-05-24",
-      haActivaMin: 1240,
-      haActivaMax: 1360,
+    const satelital = VinchinaSatelitalSchema.parse(satellitePayload({
       ndviMedio: 0.32,
-    });
+    }));
 
     expect(satelital.haActivaMax).toBe(1360);
+    expect(satelital.alcance).toContain("No representa todo el departamento");
+    expect(satelital.sceneUrl).toContain(encodeURIComponent(satelital.sceneId));
   });
 
   it.each([
@@ -77,10 +96,7 @@ describe("VinchinaSatelitalSchema", () => {
     { haActivaMin: 0, haActivaMax: Number.POSITIVE_INFINITY },
   ])("rejects invalid active-area ranges: %o", (range) => {
     expect(
-      VinchinaSatelitalSchema.safeParse({
-        fecha: "2026-05-24",
-        ...range,
-      }).success,
+      VinchinaSatelitalSchema.safeParse(satellitePayload(range)).success,
     ).toBe(false);
   });
 
@@ -91,34 +107,69 @@ describe("VinchinaSatelitalSchema", () => {
     { ndmiMedio: 1.01 },
   ])("rejects out-of-range vegetation indices: %o", (index) => {
     expect(
-      VinchinaSatelitalSchema.safeParse({
-        fecha: "2026-05-24",
-        haActivaMin: 10,
-        haActivaMax: 20,
-        ...index,
-      }).success,
+      VinchinaSatelitalSchema.safeParse(
+        satellitePayload({ haActivaMin: 10, haActivaMax: 20, ...index }),
+      ).success,
     ).toBe(false);
   });
 
   it("rejects an active-zone mean when active area is zero", () => {
     expect(
-      VinchinaSatelitalSchema.safeParse({
-        fecha: "2026-05-24",
+      VinchinaSatelitalSchema.safeParse(satellitePayload({
         haActivaMin: 0,
         haActivaMax: 0,
         ndviMedio: 0,
-      }).success,
+      })).success,
     ).toBe(false);
   });
 
   it("rejects active-zone NDMI when active area is zero", () => {
     expect(
-      VinchinaSatelitalSchema.safeParse({
-        fecha: "2026-05-24",
+      VinchinaSatelitalSchema.safeParse(satellitePayload({
         haActivaMin: 0,
         haActivaMax: 0,
         ndmiMedio: 0,
-      }).success,
+      })).success,
+    ).toBe(false);
+  });
+
+  it.each([
+    [-68.05, -28.9, -68.4, -28.6],
+    [-68.4, -28.6, -68.05, -28.9],
+    [-181, -28.9, -68.05, -28.6],
+    [-68.4, -91, -68.05, -28.6],
+  ])("rejects an invalid [west, south, east, north] bbox: %o", (bbox) => {
+    expect(
+      VinchinaSatelitalSchema.safeParse(satellitePayload({ bbox })).success,
+    ).toBe(false);
+  });
+
+  it.each([-0.1, 100.1, Number.POSITIVE_INFINITY])(
+    "rejects invalid valid-coverage percentages: %s",
+    (coberturaValidaPct) => {
+      expect(
+        VinchinaSatelitalSchema.safeParse(
+          satellitePayload({ coberturaValidaPct }),
+        ).success,
+      ).toBe(false);
+    },
+  );
+
+  it("requires the exact HTTP STAC item URL for the non-empty scene ID", () => {
+    expect(
+      VinchinaSatelitalSchema.safeParse(
+        satellitePayload({ sceneUrl: "https://example.org/items/another-scene" }),
+      ).success,
+    ).toBe(false);
+    expect(
+      VinchinaSatelitalSchema.safeParse(
+        satellitePayload({ sceneId: "   " }),
+      ).success,
+    ).toBe(false);
+    expect(
+      VinchinaSatelitalSchema.safeParse(
+        satellitePayload({ sceneUrl: "https://example.org/items/%" }),
+      ).success,
     ).toBe(false);
   });
 });
@@ -168,21 +219,19 @@ describe("formatAreaRange", () => {
 describe("composeVinchinaSatelliteIndicators", () => {
   it("composes the active-area range and observed NDVI/NDMI indicators", () => {
     expect(
-      composeVinchinaSatelliteIndicators({
-        fecha: "2026-05-24",
-        haActivaMin: 1240,
-        haActivaMax: 1360,
+      composeVinchinaSatelliteIndicators(satellitePayload({
         ndviMedio: 0.324,
         ndmiMedio: 0.187,
-      }),
+      })),
     ).toEqual([
       {
-        etiqueta: "Área con vegetación activa observada",
+        etiqueta: "Área con vegetación activa observada · valle monitoreado",
         valor: "1.240–1.360 ha",
         fonte: "Sentinel-2 (Copernicus)",
         fecha: "2026-05-24",
         confianza: "estimado",
-        nota: "Rango heurístico no validado (banda de escenario ±15%). La vegetación puede ser cultivada o natural; distinguir cultivos requiere validación local.",
+        nota: "Intersección del departamento Vinchina con la ventana monitoreada del Valle del Bermejo. No representa todo el departamento. Cobertura válida de la escena: 97,3%. Rango heurístico no validado (banda de escenario ±15%). La vegetación puede ser cultivada o natural; distinguir cultivos requiere validación local.",
+        url: satelliteAudit.sceneUrl,
       },
       {
         etiqueta: "NDVI medio (zonas activas)",
@@ -190,6 +239,7 @@ describe("composeVinchinaSatelliteIndicators", () => {
         fonte: "Sentinel-2 (Copernicus)",
         fecha: "2026-05-24",
         confianza: "observado",
+        url: satelliteAudit.sceneUrl,
       },
       {
         etiqueta: "NDMI medio (zonas activas)",
@@ -198,30 +248,24 @@ describe("composeVinchinaSatelliteIndicators", () => {
         fecha: "2026-05-24",
         confianza: "observado",
         nota: "Proxy de humedad de la vegetación activa; no mide directamente uso de agua ni producción.",
+        url: satelliteAudit.sceneUrl,
       },
     ]);
   });
 
   it("omits the NDVI indicator when the mean is unavailable", () => {
-    const indicators = composeVinchinaSatelliteIndicators({
-      fecha: "2026-05-24",
-      haActivaMin: 1240,
-      haActivaMax: 1360,
-    });
+    const indicators = composeVinchinaSatelliteIndicators(satellitePayload());
 
     expect(indicators).toHaveLength(1);
     expect(indicators[0].etiqueta).toBe(
-      "Área con vegetación activa observada",
+      "Área con vegetación activa observada · valle monitoreado",
     );
   });
 
   it("omits the NDMI indicator when the mean is unavailable", () => {
-    const indicators = composeVinchinaSatelliteIndicators({
-      fecha: "2026-05-24",
-      haActivaMin: 1240,
-      haActivaMax: 1360,
+    const indicators = composeVinchinaSatelliteIndicators(satellitePayload({
       ndviMedio: 0.324,
-    });
+    }));
 
     expect(indicators.map((indicator) => indicator.etiqueta)).not.toContain(
       "NDMI medio (zonas activas)",
@@ -229,12 +273,11 @@ describe("composeVinchinaSatelliteIndicators", () => {
   });
 
   it("does not describe an active-zone mean when active area is zero", () => {
-    const indicators = composeVinchinaSatelliteIndicators({
-      fecha: "2026-05-24",
+    const indicators = composeVinchinaSatelliteIndicators(satellitePayload({
       haActivaMin: 0,
       haActivaMax: 0,
       ndviMedio: 0,
-    });
+    }));
 
     expect(indicators.map((indicator) => indicator.etiqueta)).not.toContain(
       "NDVI medio (zonas activas)",

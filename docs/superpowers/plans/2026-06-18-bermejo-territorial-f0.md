@@ -79,6 +79,11 @@ describe("VinchinaSatelitalSchema", () => {
   it("parses the satellite estimate", () => {
     const v = VinchinaSatelitalSchema.parse({
       fecha: "2026-05-24",
+      alcance: "Intersección del departamento Vinchina con la ventana monitoreada del Valle del Bermejo. No representa todo el departamento.",
+      bbox: [-68.40, -28.90, -68.05, -28.60],
+      sceneId: "S2A_20260524_VINCHINA",
+      coberturaValidaPct: 97.3,
+      sceneUrl: "https://planetarycomputer.microsoft.com/api/stac/v1/collections/sentinel-2-l2a/items/S2A_20260524_VINCHINA",
       haActivaMin: 1240,
       haActivaMax: 1360,
       ndviMedio: 0.32,
@@ -138,6 +143,11 @@ export type Territorial = z.infer<typeof TerritorialSchema>;
 
 export const VinchinaSatelitalSchema = z.object({
   fecha: z.string(),
+  alcance: z.string(), // Debe declarar la ventana monitoreada y "No representa todo el departamento".
+  bbox: z.tuple([z.number(), z.number(), z.number(), z.number()]), // [west, south, east, north]
+  sceneId: z.string().min(1),
+  coberturaValidaPct: z.number().min(0).max(100),
+  sceneUrl: z.url({ protocol: /^https?$/ }), // URL exacta del item; el segmento final codifica sceneId.
   haActivaMin: z.number(),
   haActivaMax: z.number(),
   ndviMedio: z.number().optional(),
@@ -312,7 +322,7 @@ git commit -m "data(territorial): Vinchina localidades + corredor Pircas Negras 
 - Read AOI geometry: `public/data/bermejo-deptos.geojson`
 - Modify: `.github/workflows/satelital.yml` (focused test + script in the run step)
 
-**Reuses** `scripts/s2_common.py` helpers (`find_scenes`, `download_asset`, `read_band_to_4326`, `to_reflectance`). The query/display bbox is `[-68.40, -28.90, -68.05, -28.60]`, but every scientific statistic is clipped to the official `properties.nombre == "Vinchina"` Polygon/MultiPolygon from `public/data/bermejo-deptos.geojson`. Rasterize that boundary on the native-ish analysis grid (`s2_common.DST_RES`) with `all_touched=False`; usable coverage is jointly valid NDVI+NDMI pixels inside that boundary divided by all boundary pixels inside the bbox. NDVI active threshold: `0.25` (arid baseline). NDMI is averaged only over those active NDVI pixels. The ±15% output remains an unvalidated heuristic scenario band, not uncertainty or a confidence interval.
+**Reuses** `scripts/s2_common.py` helpers (`find_scenes`, `download_asset`, `read_band_to_4326`, `to_reflectance`). The monitored Valle del Bermejo window is the query/display bbox `[-68.40, -28.90, -68.05, -28.60]`; every scientific statistic covers only its intersection with the official `properties.nombre == "Vinchina"` Polygon/MultiPolygon from `public/data/bermejo-deptos.geojson` and **does not cover the whole department**. Rasterize that boundary on the native-ish analysis grid (`s2_common.DST_RES`) with `all_touched=False`; usable coverage is jointly valid NDVI+NDMI pixels inside that intersection divided by all department pixels inside the monitored window. NDVI active threshold: `0.25` (arid baseline). NDMI is averaged only over those active NDVI pixels. The ±15% output remains an unvalidated heuristic scenario band, not uncertainty or a confidence interval.
 
 - [ ] **Step 1: Implement the tested pipeline contract**
 
@@ -342,7 +352,7 @@ The workflow installs rasterio and the other Python dependencies, then runs the 
 
 - [ ] **Step 4: Verify the output contract**
 
-`public/data/vinchina-satelital.json` must satisfy `VinchinaSatelitalSchema`: required `fecha`, `haActivaMin`, and `haActivaMax`; optional active-zone `ndviMedio`/`ndmiMedio`, with neither mean allowed when `haActivaMax == 0`. The bounds metadata must state the Vinchina AOI mask and active-zone NDMI method; the overlay must remain transparent outside the boundary.
+`public/data/vinchina-satelital.json` must satisfy `VinchinaSatelitalSchema`: required `fecha`, human-readable `alcance` (monitored Valle del Bermejo window intersected with Vinchina, plus the exact disclosure `No representa todo el departamento`), ordered WGS84 `bbox` as `[west, south, east, north]`, non-empty `sceneId`, `coberturaValidaPct` in `0..100`, exact HTTP(S) STAC-item `sceneUrl`, `haActivaMin`, and `haActivaMax`; optional active-zone `ndviMedio`/`ndmiMedio`, with neither mean allowed when `haActivaMax == 0`. Construct `sceneUrl` by URL-encoding `item.id` as the final item-endpoint segment. The bounds metadata may duplicate these audit fields and must state the monitored-window AOI mask and active-zone NDMI method; the overlay must remain transparent outside the Vinchina/window intersection.
 
 ---
 
@@ -459,7 +469,7 @@ git commit -m "feat(territorial): SourceBadge, IndicatorCard, BriefingChapter co
 **Files:**
 - Create: `src/app/bermejo/page.tsx`
 
-Loads the territorial briefing + the observed active-vegetation satellite proxy, composes the `satelite` chapter at runtime (cultivated or natural; local validation required), and renders the 3D map (3 deptos, Vinchina highlight, corridor) beside the briefing aside.
+Loads the territorial briefing + the observed active-vegetation satellite proxy for the monitored Valle del Bermejo window intersected with Vinchina (**not the whole department**), composes the `satelite` chapter at runtime (cultivated or natural; local validation required), and renders the 3D map (3 deptos, Vinchina highlight, corridor) beside the briefing aside. The area card says `valle monitoreado`, repeats `alcance`, valid-coverage percentage, heuristic/cultivation caveats, and links area/NDVI/NDMI to the exact selected STAC item.
 
 - [ ] **Step 1: Write `src/app/bermejo/page.tsx`**
 
@@ -489,7 +499,7 @@ export default function BermejoPage() {
     fetchTerritorial().then(setData);
   }, []);
 
-  // Compose active-vegetation proxy indicators; they do not directly measure production/cultivation.
+  // Monitored-window intersection only, not all Vinchina; the proxy does not directly measure production/cultivation.
   useEffect(() => {
     fetchVinchinaSatelital().then((s) => {
       setSateliteExtra(s ? composeVinchinaSatelliteIndicators(s) : []);
@@ -613,6 +623,6 @@ Then watch the run: `gh run watch <id> --exit-status` and confirm `public/data/v
 
 **Placeholder scan:** Task 2 records the curated official values and exact source/reference dates; no `REAL` value placeholders remain. All code steps contain complete code.
 
-**Type consistency:** `Indicador`/`Territorial`/`VinchinaSatelital`/`Confianza` defined in Task 1 are used consistently in Tasks 5 (SourceBadge `Confianza`, IndicatorCard `Indicador`) and 6 (`Territorial`, `Indicador`, `formatAreaRange`). `formatAreaRange(min,max)` signature matches its use in Task 6. `vinchina-satelital.json` written by Task 4 matches `VinchinaSatelitalSchema` (fecha, haActivaMin, haActivaMax, optional active-zone ndviMedio/ndmiMedio) read in Task 6.
+**Type consistency:** `Indicador`/`Territorial`/`VinchinaSatelital`/`Confianza` defined in Task 1 are used consistently in Tasks 5 (SourceBadge `Confianza`, IndicatorCard `Indicador`) and 6 (`Territorial`, `Indicador`, `formatAreaRange`). `formatAreaRange(min,max)` signature matches its use in Task 6. `vinchina-satelital.json` written by Task 4 matches `VinchinaSatelitalSchema` (`fecha`, `alcance`, ordered `bbox`, `sceneId`, `coberturaValidaPct`, exact `sceneUrl`, `haActivaMin`, `haActivaMax`, optional active-zone `ndviMedio`/`ndmiMedio`) read in Task 6.
 
 **Open implementation checks flagged for the worker:** `s2_common.find_scenes` tile arg (Task 4 note); `MapShell`/`ResizableAside` prop shapes (Task 6 Step 2); depto name strings in `departamentos.geojson` (Task 2 Step 3).

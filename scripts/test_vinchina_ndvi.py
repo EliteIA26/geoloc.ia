@@ -1,8 +1,13 @@
+import json
 import math
 import os
 import sys
+import tempfile
 import unittest
+from datetime import datetime
+from pathlib import Path
 from types import SimpleNamespace
+from unittest.mock import patch
 
 import numpy as np
 
@@ -232,7 +237,8 @@ class VinchinaNdviTests(unittest.TestCase):
         self.assertIn("unvalidated heuristic scenario band", wording)
         self.assertIn("threshold sensitivity", wording)
         self.assertIn("field validation", wording)
-        self.assertIn("department boundary", wording)
+        self.assertIn("monitored valle del bermejo window", wording)
+        self.assertIn("does not cover the whole department", wording)
         self.assertIn("active-zone ndmi", wording)
 
     def test_area_summary_uses_native_analysis_resolution(self):
@@ -296,6 +302,48 @@ class VinchinaNdviTests(unittest.TestCase):
 
         self.assertIn("active-pixel mean NDVI unavailable", message)
         self.assertIn("active-zone mean NDMI unavailable", message)
+        self.assertIn("monitored Valle del Bermejo window", message)
+        self.assertIn("not the whole department", message)
+        self.assertNotIn("within the Vinchina department boundary", message)
+
+    def test_data_output_contains_auditable_monitored_aoi_metadata(self):
+        item = SimpleNamespace(
+            id="scene / exact id",
+            datetime=datetime(2026, 5, 24),
+            properties={"eo:cloud_cover": 3.2},
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            png_path = root / "vinchina-ndvi.png"
+            bounds_path = root / "vinchina-ndvi-bounds.json"
+            data_path = root / "vinchina-satelital.json"
+            with (
+                patch.object(subject, "PNG_PATH", png_path),
+                patch.object(subject, "BOUNDS_PATH", bounds_path),
+                patch.object(subject, "DATA_PATH", data_path),
+            ):
+                subject._write_outputs_atomically(
+                    np.array([[0.4]]),
+                    item,
+                    0.973,
+                    {"haActivaMin": 10, "haActivaMax": 12, "ndviMedio": 0.4},
+                )
+
+            payload = json.loads(data_path.read_text(encoding="utf-8"))
+
+        self.assertEqual(
+            payload["alcance"],
+            "Intersección del departamento Vinchina con la ventana monitoreada "
+            "del Valle del Bermejo. No representa todo el departamento.",
+        )
+        self.assertEqual(payload["bbox"], subject.BBOX)
+        self.assertEqual(payload["sceneId"], item.id)
+        self.assertEqual(payload["coberturaValidaPct"], 97.3)
+        self.assertEqual(
+            payload["sceneUrl"],
+            "https://planetarycomputer.microsoft.com/api/stac/v1/collections/"
+            "sentinel-2-l2a/items/scene%20%2F%20exact%20id",
+        )
 
     def test_active_mean_is_omitted_when_published_area_rounds_to_zero(self):
         summary = subject.summarize_active_area(
