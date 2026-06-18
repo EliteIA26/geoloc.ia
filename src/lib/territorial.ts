@@ -54,6 +54,39 @@ export function formatAreaRange(min: number, max: number): string {
   return `${areaFormatter.format(Math.round(min))}–${areaFormatter.format(Math.round(max))} ha`;
 }
 
+const decimalFormatter = new Intl.NumberFormat("es-AR", {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+
+export function composeVinchinaSatelliteIndicators(
+  data: VinchinaSatelital,
+): Indicador[] {
+  const indicators: Indicador[] = [
+    {
+      etiqueta: "Área con vegetación activa observada",
+      valor: formatAreaRange(data.haActivaMin, data.haActivaMax),
+      fonte: "Sentinel-2 (Copernicus)",
+      fecha: data.fecha,
+      confianza: "estimado",
+      nota:
+        "Rango heurístico no validado (banda de escenario ±15%). La vegetación puede ser cultivada o natural; distinguir cultivos requiere validación local.",
+    },
+  ];
+
+  if (data.ndviMedio !== undefined) {
+    indicators.push({
+      etiqueta: "NDVI medio (zonas activas)",
+      valor: decimalFormatter.format(data.ndviMedio),
+      fonte: "Sentinel-2 (Copernicus)",
+      fecha: data.fecha,
+      confianza: "observado",
+    });
+  }
+
+  return indicators;
+}
+
 export async function fetchTerritorial(): Promise<Territorial | null> {
   try {
     const response = await fetch("/data/territorial-vinchina.json");

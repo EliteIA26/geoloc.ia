@@ -3,6 +3,7 @@ import {
   TerritorialSchema,
   VinchinaSatelitalSchema,
   areaBand,
+  composeVinchinaSatelliteIndicators,
   formatAreaRange,
 } from "./territorial";
 
@@ -82,5 +83,47 @@ describe("areaBand", () => {
 describe("formatAreaRange", () => {
   it("rounds and formats hectares using the es-AR locale", () => {
     expect(formatAreaRange(1240.4, 1359.6)).toBe("1.240–1.360 ha");
+  });
+});
+
+describe("composeVinchinaSatelliteIndicators", () => {
+  it("composes the heuristic active-area range and observed NDVI", () => {
+    expect(
+      composeVinchinaSatelliteIndicators({
+        fecha: "2026-05-24",
+        haActivaMin: 1240,
+        haActivaMax: 1360,
+        ndviMedio: 0.324,
+      }),
+    ).toEqual([
+      {
+        etiqueta: "Área con vegetación activa observada",
+        valor: "1.240–1.360 ha",
+        fonte: "Sentinel-2 (Copernicus)",
+        fecha: "2026-05-24",
+        confianza: "estimado",
+        nota: "Rango heurístico no validado (banda de escenario ±15%). La vegetación puede ser cultivada o natural; distinguir cultivos requiere validación local.",
+      },
+      {
+        etiqueta: "NDVI medio (zonas activas)",
+        valor: "0,32",
+        fonte: "Sentinel-2 (Copernicus)",
+        fecha: "2026-05-24",
+        confianza: "observado",
+      },
+    ]);
+  });
+
+  it("omits the NDVI indicator when the mean is unavailable", () => {
+    const indicators = composeVinchinaSatelliteIndicators({
+      fecha: "2026-05-24",
+      haActivaMin: 1240,
+      haActivaMax: 1360,
+    });
+
+    expect(indicators).toHaveLength(1);
+    expect(indicators[0].etiqueta).toBe(
+      "Área con vegetación activa observada",
+    );
   });
 });
