@@ -43,6 +43,7 @@ export async function fetchSatelital(): Promise<Satelital | null> {
 export const ProvinciaNdviSchema = z.object({
   fecha: z.string(),
   deptos: z.record(z.string(), z.number()),
+  deptosNdwi: z.record(z.string(), z.number()).optional(),
 });
 export type ProvinciaNdvi = z.infer<typeof ProvinciaNdviSchema>;
 
@@ -51,6 +52,29 @@ export async function fetchProvinciaNdvi(): Promise<ProvinciaNdvi | null> {
     const res = await fetch("/data/provincia-ndvi.json");
     if (!res.ok) return null;
     return ProvinciaNdviSchema.parse(await res.json());
+  } catch {
+    return null;
+  }
+}
+
+export const AimogastaSerieSchema = z.object({
+  escenas: z.array(
+    z.object({
+      fecha: z.string(),
+      nubes: z.number(),
+      png: z.string(),
+      coordinates: z.array(z.array(z.number())),
+    }),
+  ),
+});
+export type AimogastaSerie = z.infer<typeof AimogastaSerieSchema>;
+export type Escena = AimogastaSerie["escenas"][number];
+
+export async function fetchAimogastaSeries(): Promise<AimogastaSerie | null> {
+  try {
+    const res = await fetch("/data/aimogasta-series.json");
+    if (!res.ok) return null;
+    return AimogastaSerieSchema.parse(await res.json());
   } catch {
     return null;
   }
