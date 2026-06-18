@@ -1,0 +1,48 @@
+{
+  "depto": "Vinchina",
+  "resumen": "Vinchina · Valle del Bermejo (Región I). Actualización del diagnóstico del POT 2015 con datos 2022 + observación satelital.",
+  "contexto": [
+    {
+      "etiqueta": "Población 2022",
+      "valor": "2.699",
+      "fonte": "INDEC Censo 2022",
+      "fecha": "2022",
+      "confianza": "oficial"
+    },
+    {
+      "etiqueta": "Variación 2010–2022",
+      "valor": "−1,2%",
+      "fonte": "INDEC Censo 2022",
+      "fecha": "2022",
+      "confianza": "oficial",
+      "nota": "despoblamiento — contrasta con +15,1% provincial"
+    },
+    {
+      "etiqueta": "Actividad económica principal",
+      "valor": "Comercio: 4; minería: 3; transporte y almacenamiento: 3 establecimientos",
+      "fonte": "CEP XXI",
+      "fecha": "2022",
+      "confianza": "oficial",
+      "nota": "empleo formal — subrepresenta el informal rural"
+    }
+  ],
+  "satelite": [],
+  "chile": [
+    {
+      "etiqueta": "Paso a Chile",
+      "valor": "Pircas Negras (RN76)",
+      "fonte": "IGN",
+      "fecha": "2026",
+      "confianza": "oficial",
+      "nota": "4.164 m · Corredor Bioceánico NOA-Centro / ATACALAR"
+    },
+    {
+      "etiqueta": "Estado del corredor",
+      "valor": "incipiente",
+      "fonte": "POT Valle del Bermejo",
+      "fecha": "2015",
+      "confianza": "oficial",
+      "nota": "depende de obra vial (cita textual del POT)"
+    }
+  ]
+}
