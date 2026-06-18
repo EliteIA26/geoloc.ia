@@ -1,9 +1,10 @@
 """Sentinel-2 NDVI snapshot and observed active-vegetation estimate for Vinchina.
 
 The reported hectares are pixels with NDVI > 0.25, an arid-land vegetation
-baseline. They describe observed active vegetation, never crop or cultivated
-area. A +/-15% range makes the threshold and degree-grid area uncertainty
-explicit; it is not a parcel inventory.
+baseline. The estimate describes observed active vegetation, not crop or
+cultivated area: active pixels may be cultivated or natural vegetation, and
+distinguishing cultivation requires local validation. A +/-15% range makes the
+threshold and degree-grid area uncertainty explicit; it is not a parcel inventory.
 """
 
 import io
@@ -18,6 +19,11 @@ import numpy as np
 
 NDVI_ACTIVE = 0.25
 REL_MARGIN = 0.15
+NDVI_DENOMINATOR_EPS = 1e-8
+ESTIMATE_QUALIFIER = (
+    "active vegetation (cultivated or natural); distinguishing cultivation "
+    "requires local validation"
+)
 BBOX = [-68.40, -28.90, -68.05, -28.60]
 RES = 0.0009  # about 100 m in a degree grid at Vinchina's latitude
 MAX_CLOUD = 60
@@ -61,7 +67,9 @@ def compute_ndvi(red, nir, to_reflectance):
         & np.isfinite(nir)
         & np.isfinite(red_reflectance)
         & np.isfinite(nir_reflectance)
-        & (denominator != 0)
+        & (red_reflectance > 0.0)
+        & (nir_reflectance > 0.0)
+        & (denominator > NDVI_DENOMINATOR_EPS)
     )
     ndvi = np.full(red.shape, np.nan, dtype=np.float64)
     np.divide(
@@ -258,7 +266,7 @@ def main():
         f"{valid_coverage:.1%}."
     )
     print(
-        "Observed active vegetation (NDVI > "
+        f"Observed {ESTIMATE_QUALIFIER} (NDVI > "
         f"{NDVI_ACTIVE:.2f}, +/-{REL_MARGIN:.0%} threshold/area uncertainty): "
         f"{summary['haActivaMin']}-{summary['haActivaMax']} ha; "
         f"active-pixel mean NDVI {summary['ndviMedio']}."

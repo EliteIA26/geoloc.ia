@@ -22,8 +22,8 @@ class VinchinaNdviTests(unittest.TestCase):
         self.assertAlmostEqual(sliver, 0.2)
 
     def test_compute_ndvi_applies_reflectance_conversion_and_masks_invalid_values(self):
-        red = np.array([[3000.0, np.nan, 1000.0, 0.0]])
-        nir = np.array([[5000.0, 5000.0, 1000.0, 10000.0]])
+        red = np.array([[3000.0, np.nan, 1000.0, 0.0, 900.0]])
+        nir = np.array([[5000.0, 5000.0, 1000.0, 10000.0, 800.0]])
 
         ndvi = subject.compute_ndvi(
             red,
@@ -35,6 +35,25 @@ class VinchinaNdviTests(unittest.TestCase):
         self.assertTrue(np.isnan(ndvi[0, 1]))
         self.assertTrue(np.isnan(ndvi[0, 2]))  # zero denominator
         self.assertTrue(np.isnan(ndvi[0, 3]))  # NDVI outside physical range
+        self.assertTrue(np.isnan(ndvi[0, 4]))  # nonpositive reflectances
+
+    def test_compute_ndvi_rejects_numerically_tiny_positive_denominator(self):
+        red = np.array([[1000.000001]])
+        nir = np.array([[1000.000002]])
+
+        ndvi = subject.compute_ndvi(
+            red,
+            nir,
+            to_reflectance=lambda values: (values - 1000.0) / 10000.0,
+        )
+
+        self.assertTrue(np.isnan(ndvi[0, 0]))
+
+    def test_module_wording_explains_active_vegetation_ambiguity(self):
+        wording = f"{subject.__doc__} {subject.ESTIMATE_QUALIFIER}".lower()
+
+        self.assertIn("cultivated or natural", wording)
+        self.assertIn("local validation", wording)
 
     def test_active_summary_uses_ground_area_margin_and_active_only_mean(self):
         ndvi = np.array([[0.25, 0.30], [0.60, np.nan]])
