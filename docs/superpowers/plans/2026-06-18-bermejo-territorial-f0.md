@@ -217,7 +217,7 @@ Curated output (keep the structure and provenance semantics exactly):
   "resumen": "Vinchina · Valle del Bermejo (Región I). Insumo de inteligencia territorial para el Plan de Desarrollo Productivo — relacionado al POT 2015 (diagnóstico territorial de base), con datos 2022 + observación satelital.",
   "contexto": [
     { "etiqueta": "Población 2022", "valor": "2.699", "fonte": "INDEC Censo 2022", "fecha": "2022", "confianza": "oficial" },
-    { "etiqueta": "Variación 2010–2022", "valor": "−1,2%", "fonte": "INDEC Censo 2022", "fecha": "2022", "confianza": "oficial", "nota": "despoblamiento — contrasta con +15,1% provincial" },
+    { "etiqueta": "Variación 2010–2022", "valor": "−1,2%", "fonte": "INDEC Censos 2010 y 2022", "fecha": "2010–2022", "confianza": "oficial", "nota": "despoblamiento — contrasta con +15,1% provincial" },
     { "etiqueta": "Establecimientos formales por sector", "valor": "15 establecimientos registrados; lideran comercio (4), minería (3) y transporte y almacenamiento (3)", "fonte": "CEP XXI", "fecha": "2022", "confianza": "oficial", "nota": "mide establecimientos registrados, no empleo ni producción; subrepresenta la informalidad rural" }
   ],
   "satelite": [],
