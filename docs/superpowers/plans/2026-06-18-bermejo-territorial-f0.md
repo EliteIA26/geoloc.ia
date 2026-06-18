@@ -197,31 +197,33 @@ git commit -m "feat(territorial): Zod schemas, loaders + area-range helpers (TDD
 - Create: `public/data/territorial-vinchina.json`
 - Create: `public/data/bermejo-deptos.geojson`
 
-**Data sourcing (use REAL values — never invent):**
-- População por depto: INDEC Censo 2022 — `https://www.indec.gob.ar/ftp/cuadros/poblacion/c2022_larioja_est_c2_12.xlsx` (total de población por departamento; Vinchina row). Variación 2010→2022 já conhecida: **−1,2%**.
-- Atividade econômica / emprego formal por setor: CEP XXI — `https://datos.produccion.gob.ar/dataset/distribucion-geografica-de-los-establecimientos-productivos` (filtrar depto Vinchina, La Rioja).
+**Data sourcing (curated official values — never invent):**
+- Población por departamento: INDEC Censo 2022 — `https://www.indec.gob.ar/ftp/cuadros/poblacion/c2022_larioja_est_c2_12.xlsx`; base oficial Censo 2010 — `https://www.indec.gob.ar/ftp/censos/2010/CuadrosDefinitivos/P1-P_La_Rioja.xls`. Vinchina: **2.731 habitantes en 2010** y **2.699 en 2022**, por lo que la variación 2010→2022 es **−1,2%**.
+- Establecimientos registrados por sector: CEP XXI — `https://datos.produccion.gob.ar/dataset/distribucion-geografica-de-los-establecimientos-productivos`. Para Vinchina, La Rioja, año de referencia 2022: **15 establecimientos registrados**; lideran comercio (4), minería (3) y transporte y almacenamiento (3). El indicador mide establecimientos, no empleo ni producción, y subrepresenta la informalidad rural.
+- Paso Pircas Negras: Ministerio del Interior · Centros de Frontera — `https://www.argentina.gob.ar/interior/centros-de-frontera/pircas-negras` (fuente modificada el **2025-05-16**): RN76, 4.164 m y Corredor Bioceánico NOA-Centro.
+- Corredor en el POT: el valor `incipiente` es explícitamente el diagnóstico territorial del POT Valle del Bermejo de **2015**, no una evaluación del estado actual.
 
-- [ ] **Step 1: Fetch the real numbers**
+- [ ] **Step 1: Verify the curated official values**
 
-Download the INDEC xlsx above and read the Vinchina row (población 2010, 2022). From CEP XXI, note the top 2–3 formal sectors + establishment count for Vinchina. Record the exact values and their publication dates.
+Verify the INDEC population figures (2.731 in 2010; 2.699 in 2022), the calculated −1,2% variation, and the CEP XXI 2022 aggregation (15 registered establishments; leading sector counts 4/3/3). Confirm every source/reference date above without inferring unavailable figures.
 
-- [ ] **Step 2: Write `territorial-vinchina.json` from the fetched values**
+- [ ] **Step 2: Write the curated `territorial-vinchina.json`**
 
-Shape (fill `valor`/`fecha` with the REAL fetched numbers; keep the structure exactly):
+Curated output (keep the structure and provenance semantics exactly):
 
 ```json
 {
   "depto": "Vinchina",
   "resumen": "Vinchina · Valle del Bermejo (Región I). Insumo de inteligencia territorial para el Plan de Desarrollo Productivo — relacionado al POT 2015 (diagnóstico territorial de base), con datos 2022 + observación satelital.",
   "contexto": [
-    { "etiqueta": "Población 2022", "valor": "<REAL>", "fonte": "INDEC Censo 2022", "fecha": "2022", "confianza": "oficial" },
+    { "etiqueta": "Población 2022", "valor": "2.699", "fonte": "INDEC Censo 2022", "fecha": "2022", "confianza": "oficial" },
     { "etiqueta": "Variación 2010–2022", "valor": "−1,2%", "fonte": "INDEC Censo 2022", "fecha": "2022", "confianza": "oficial", "nota": "despoblamiento — contrasta con +15,1% provincial" },
-    { "etiqueta": "Actividad económica principal", "valor": "<REAL>", "fonte": "CEP XXI", "fecha": "<REAL>", "confianza": "oficial", "nota": "empleo formal — subrepresenta el informal rural" }
+    { "etiqueta": "Establecimientos formales por sector", "valor": "15 establecimientos registrados; lideran comercio (4), minería (3) y transporte y almacenamiento (3)", "fonte": "CEP XXI", "fecha": "2022", "confianza": "oficial", "nota": "mide establecimientos registrados, no empleo ni producción; subrepresenta la informalidad rural" }
   ],
   "satelite": [],
   "chile": [
-    { "etiqueta": "Paso a Chile", "valor": "Pircas Negras (RN76)", "fonte": "IGN", "fecha": "2026", "confianza": "oficial", "nota": "4.164 m · Corredor Bioceánico NOA-Centro / ATACALAR" },
-    { "etiqueta": "Estado del corredor", "valor": "incipiente", "fonte": "POT Valle del Bermejo", "fecha": "2015", "confianza": "oficial", "nota": "depende de obra vial (cita textual del POT)" }
+    { "etiqueta": "Paso a Chile", "valor": "Pircas Negras (RN76)", "fonte": "Ministerio del Interior · Centros de Frontera", "fecha": "2025-05-16", "confianza": "oficial", "nota": "4.164 m · RN76 · Corredor Bioceánico NOA-Centro" },
+    { "etiqueta": "Diagnóstico del corredor en el POT (2015)", "valor": "incipiente", "fonte": "POT Valle del Bermejo", "fecha": "2015", "confianza": "oficial", "nota": "diagnóstico de 2015; depende de obra vial (cita textual del POT)" }
   ]
 }
 ```
@@ -690,9 +692,9 @@ Then watch the run: `gh run watch <id> --exit-status` and confirm `public/data/v
 
 ## Self-Review
 
-**Spec coverage:** §3 architecture → Tasks 1,5,6; §4 telas (map + 3-chapter briefing) → Task 6 + Task 5; §5 dados/fontes/confiança → Tasks 1 (Confianza enum + SourceBadge in Task 5), 2 (curated official), 4 (satellite estimate, honest range + "vegetación activa" wording in Task 6 Step 1); §6 pipeline → Task 4; §7 testing → Task 1 + Task 7. Chile corridor "incipiente" → Task 2 JSON + Task 3 geojson. All covered.
+**Spec coverage:** §3 architecture → Tasks 1,5,6; §4 telas (map + 3-chapter briefing) → Task 6 + Task 5; §5 dados/fontes/confiança → Tasks 1 (Confianza enum + SourceBadge in Task 5), 2 (curated official), 4 (satellite estimate, honest range + "vegetación activa" wording in Task 6 Step 1); §6 pipeline → Task 4; §7 testing → Task 1 + Task 7. Diagnóstico del corredor como "incipiente" en el POT 2015 → Task 2 JSON; corredor geográfico → Task 3 geojson. All covered.
 
-**Placeholder scan:** The only deliberate "fill REAL value" is Task 2 (curated official numbers) — that is a data-acquisition step with exact source URLs, not a code placeholder (inventing numbers would violate the honesty rule). All code steps contain complete code.
+**Placeholder scan:** Task 2 records the curated official values and exact source/reference dates; no `REAL` value placeholders remain. All code steps contain complete code.
 
 **Type consistency:** `Indicador`/`Territorial`/`VinchinaSatelital`/`Confianza` defined in Task 1 are used consistently in Tasks 5 (SourceBadge `Confianza`, IndicatorCard `Indicador`) and 6 (`Territorial`, `Indicador`, `formatAreaRange`). `formatAreaRange(min,max)` signature matches its use in Task 6. `vinchina-satelital.json` written by Task 4 matches `VinchinaSatelitalSchema` (fecha, haActivaMin, haActivaMax, ndviMedio) read in Task 6.
 
