@@ -268,7 +268,7 @@ git commit -m "data(territorial): curated Vinchina indicators (Censo 2022 + CEP 
 - Create: `public/data/vinchina-localidades.geojson`
 - Create: `public/data/corredor-pircas-negras.geojson`
 
-Use real coordinates (lon, lat). Vinchina town ≈ (−68.20, −28.76); Jagüé ≈ (−68.50, −28.55); Paso Pircas Negras ≈ (−69.27, −28.07). The corridor is a simplified real route (Vinchina → Jagüé → Pircas Negras) — label it as RN76, not a surveyed centerline.
+Use official coordinates in `(lon, lat)` order. Argentina Georef returns Villa San José de Vinchina at `[-68.2048448095049, -28.7536971019394]` (`id=46098020`) and Jagüé at `[-68.3857405424316, -28.6637211783493]` (`id=46098010`), consulted 2026-06-18. The previous approximate Jagüé point was materially wrong and must not be reused. For the corridor, do not connect locality/pass points with straight segments: extract `RN 0076` from the official DNV `idera:Rutas_Nacionales` WFS, clip the `Sentido=A` feature `id=341` from the vertex nearest the Vinchina centroid through its western endpoint, then simplify the extracted road geometry with the documented 100 m tolerance. The result is for visualization, not survey/mensura use.
 
 - [ ] **Step 1: Write `vinchina-localidades.geojson`**
 
@@ -276,22 +276,15 @@ Use real coordinates (lon, lat). Vinchina town ≈ (−68.20, −28.76); Jagüé
 {
   "type": "FeatureCollection",
   "features": [
-    { "type": "Feature", "properties": { "nombre": "Vinchina", "tipo": "cabecera" }, "geometry": { "type": "Point", "coordinates": [-68.20, -28.76] } },
-    { "type": "Feature", "properties": { "nombre": "Jagüé", "tipo": "localidad" }, "geometry": { "type": "Point", "coordinates": [-68.50, -28.55] } }
+    { "type": "Feature", "properties": { "nombre": "Vinchina", "tipo": "cabecera", "fuente": "Argentina Georef API", "fuente_id": "46098020", "fecha_consulta": "2026-06-18" }, "geometry": { "type": "Point", "coordinates": [-68.2048448095049, -28.7536971019394] } },
+    { "type": "Feature", "properties": { "nombre": "Jagüé", "tipo": "localidad", "fuente": "Argentina Georef API", "fuente_id": "46098010", "fecha_consulta": "2026-06-18" }, "geometry": { "type": "Point", "coordinates": [-68.3857405424316, -28.6637211783493] } }
   ]
 }
 ```
 
 - [ ] **Step 2: Write `corredor-pircas-negras.geojson`**
 
-```json
-{
-  "type": "FeatureCollection",
-  "features": [
-    { "type": "Feature", "properties": { "nombre": "Corredor RN76 → Paso Pircas Negras", "fuente": "IGN (simplificado)" }, "geometry": { "type": "LineString", "coordinates": [[-68.20, -28.76], [-68.50, -28.55], [-69.27, -28.07]] } }
-  ]
-}
-```
+Use the official GeoJSON resource `transporte_98a9ee1b-321d-4b68-b00e-bf44ae448e2c` from dataset `transporte_abe45f2c-cf9f-458e-8b51-03ecda6f708a` (DNV Rutas Nacionales), revised 2025-04-23 and consulted 2026-06-18. Query the `idera:Rutas_Nacionales` WFS with `CQL_FILTER=RTN='0076'`, select feature `id=341`, perform the clip described above, and apply Douglas–Peucker in a local metric projection at 100 m. The committed output has 173 vertices from a 2,111-vertex clip and a measured maximum source-vertex deviation of 97.5 m. Preserve the service URL, IDs, dates, method, tolerance, fidelity, and non-survey disclaimer in feature properties; the generated coordinate array in `public/data/corredor-pircas-negras.geojson` is authoritative for this plan.
 
 - [ ] **Step 3: Verify both parse as JSON**
 

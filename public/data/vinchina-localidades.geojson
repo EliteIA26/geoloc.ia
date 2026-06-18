@@ -3,13 +3,36 @@
   "features": [
     {
       "type": "Feature",
-      "properties": { "nombre": "Vinchina", "tipo": "cabecera" },
-      "geometry": { "type": "Point", "coordinates": [-68.20, -28.76] }
+      "properties": {
+        "nombre": "Vinchina",
+        "tipo": "cabecera",
+        "nombre_fuente": "Villa San José de Vinchina",
+        "fuente": "Argentina Georef API",
+        "fuente_id": "46098020",
+        "fuente_url": "https://apis.datos.gob.ar/georef/api/localidades?id=46098020",
+        "fecha_consulta": "2026-06-18",
+        "metodo": "centroide oficial de localidad"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-68.2048448095049, -28.7536971019394]
+      }
     },
     {
       "type": "Feature",
-      "properties": { "nombre": "Jagüé", "tipo": "localidad" },
-      "geometry": { "type": "Point", "coordinates": [-68.50, -28.55] }
+      "properties": {
+        "nombre": "Jagüé",
+        "tipo": "localidad",
+        "fuente": "Argentina Georef API",
+        "fuente_id": "46098010",
+        "fuente_url": "https://apis.datos.gob.ar/georef/api/localidades?id=46098010",
+        "fecha_consulta": "2026-06-18",
+        "metodo": "centroide oficial de localidad"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-68.3857405424316, -28.6637211783493]
+      }
     }
   ]
 }
