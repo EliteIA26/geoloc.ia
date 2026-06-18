@@ -18,12 +18,12 @@
       "nota": "despoblamiento — contrasta con +15,1% provincial"
     },
     {
-      "etiqueta": "Actividad económica principal",
-      "valor": "Comercio: 4; minería: 3; transporte y almacenamiento: 3 establecimientos",
+      "etiqueta": "Establecimientos formales por sector",
+      "valor": "15 establecimientos registrados; lideran comercio (4), minería (3) y transporte y almacenamiento (3)",
       "fonte": "CEP XXI",
       "fecha": "2022",
       "confianza": "oficial",
-      "nota": "empleo formal — subrepresenta el informal rural"
+      "nota": "mide establecimientos registrados, no empleo ni producción; subrepresenta la informalidad rural"
     }
   ],
   "satelite": [],
@@ -31,18 +31,18 @@
     {
       "etiqueta": "Paso a Chile",
       "valor": "Pircas Negras (RN76)",
-      "fonte": "IGN",
-      "fecha": "2026",
+      "fonte": "Ministerio del Interior · Centros de Frontera",
+      "fecha": "2025-05-16",
       "confianza": "oficial",
-      "nota": "4.164 m · Corredor Bioceánico NOA-Centro / ATACALAR"
+      "nota": "4.164 m · RN76 · Corredor Bioceánico NOA-Centro"
     },
     {
-      "etiqueta": "Estado del corredor",
+      "etiqueta": "Diagnóstico del corredor en el POT (2015)",
       "valor": "incipiente",
       "fonte": "POT Valle del Bermejo",
       "fecha": "2015",
       "confianza": "oficial",
-      "nota": "depende de obra vial (cita textual del POT)"
+      "nota": "diagnóstico de 2015; depende de obra vial (cita textual del POT)"
     }
   ]
 }
