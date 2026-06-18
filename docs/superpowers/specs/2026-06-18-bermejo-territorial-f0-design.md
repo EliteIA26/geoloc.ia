@@ -54,7 +54,7 @@ Classificação (selo em cada indicador): **oficial / observado / estimado / dec
 | Emprego formal por setor | CEP XXI | recente | oficial (rotular "formal") |
 | Área com vegetação ativa (ha ± faixa) | Sentinel-2 (NDVI>limiar) | ~mensal | observado/estimado |
 | NDVI / NDMI (vigor / umidade) | Sentinel-2 | ~mensal | observado |
-| RN76 / Pircas Negras / distância | IGN + POT 2015 | atual / 2015 | oficial |
+| RN76 / Pircas Negras / distância | DNV (geometria oficial da RN76) + Ministerio del Interior (passo/altitude) + POT 2015 (diagnóstico) | atual / 2015 | oficial |
 
 **Regras (inegociáveis):**
 - O satélite mede **"vegetação ativa observada"** — pode ser cultivo **ou** vegetação natural. **NUNCA** afirmar "X ha de [cultivo]"; o rótulo deixa claro que distinguir cultivo exige validação local.
