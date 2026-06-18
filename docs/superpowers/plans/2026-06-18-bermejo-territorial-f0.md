@@ -305,121 +305,41 @@ git commit -m "data(territorial): Vinchina localidades + corredor Pircas Negras 
 ## Task 4: Sentinel-2 Vinchina pipeline (NDVI + active-area estimate + active-zone NDMI)
 
 **Files:**
-- Create: `scripts/vinchina_ndvi.py`
-- Modify: `.github/workflows/satelital.yml` (add the script to the run step)
+- Implement/test: `scripts/vinchina_ndvi.py`, `scripts/test_vinchina_ndvi.py`
+- Read AOI geometry: `public/data/bermejo-deptos.geojson`
+- Modify: `.github/workflows/satelital.yml` (focused test + script in the run step)
 
-**Reuses** `scripts/s2_common.py` helpers (`find_scenes`, `download_asset`, `read_band_to_4326`, `to_reflectance`). The query/display bbox is `[-68.40, -28.90, -68.05, -28.60]`, but every scientific statistic is clipped to the `properties.nombre == "Vinchina"` Polygon/MultiPolygon from `public/data/bermejo-deptos.geojson`. Rasterize that boundary on the native-ish analysis grid (`s2_common.DST_RES`) with `all_touched=False`; usable coverage is jointly valid NDVI+NDMI pixels inside that boundary divided by all boundary pixels inside the bbox. NDVI active threshold: `0.25` (arid baseline). NDMI is averaged only over those active NDVI pixels. The ±15% output remains an unvalidated heuristic scenario band, not uncertainty or a confidence interval.
+**Reuses** `scripts/s2_common.py` helpers (`find_scenes`, `download_asset`, `read_band_to_4326`, `to_reflectance`). The query/display bbox is `[-68.40, -28.90, -68.05, -28.60]`, but every scientific statistic is clipped to the official `properties.nombre == "Vinchina"` Polygon/MultiPolygon from `public/data/bermejo-deptos.geojson`. Rasterize that boundary on the native-ish analysis grid (`s2_common.DST_RES`) with `all_touched=False`; usable coverage is jointly valid NDVI+NDMI pixels inside that boundary divided by all boundary pixels inside the bbox. NDVI active threshold: `0.25` (arid baseline). NDMI is averaged only over those active NDVI pixels. The ±15% output remains an unvalidated heuristic scenario band, not uncertainty or a confidence interval.
 
-- [ ] **Step 1: Write `scripts/vinchina_ndvi.py`**
+- [ ] **Step 1: Implement the tested pipeline contract**
 
-```python
-"""Sentinel-2 NDVI/NDMI snapshot for the masked Vinchina department boundary.
-Honest: reports a RANGE of active-vegetation hectares (cultivo OR natural), never a crop figure.
-Outputs: public/raster/vinchina-ndvi.png (+ -bounds.json), public/data/vinchina-satelital.json
-"""
-import json
-import numpy as np
-from s2_common import open_catalog, find_scenes, download_asset, read_band_to_4326, to_reflectance, ROOT
+`scripts/vinchina_ndvi.py` is the executable source of truth. Its implementation must keep these concrete API contracts:
 
-BBOX = [-68.40, -28.90, -68.05, -28.60]
-NDVI_ACTIVE = 0.25
-REL_MARGIN = 0.15
-ANALYSIS_RES = 0.0001  # native-ish area/indices grid; must match s2_common.DST_RES
-DISPLAY_RES = 0.0009   # PNG size only; never use for hectare estimates
+- Resolve repository outputs with `pathlib.Path` from the script's own `ROOT`; do not depend on the process working directory or treat `s2_common.ROOT` as a `Path`.
+- Load exactly one official `properties.nombre == "Vinchina"` Polygon/MultiPolygon from `public/data/bermejo-deptos.geojson`. `rasterize_department_mask` lazy-imports `rasterio.features.geometry_mask` and `rasterio.transform.from_bounds`, uses the same rounded width/height as `read_band_to_4326`, and sets `invert=True, all_touched=False`.
+- Query newest scenes with `s2.find_scenes(BBOX, mgrs_tile=None, max_cloud=60, limit=10)`, retain the scene-bbox prefilter, and attempt at most three candidates.
+- Use the real helper contract `download_asset(href, dst_path)`: pass each STAC asset's `.href` first and a temporary local destination second for B04, B08, B11, and SCL.
+- Reproject B04/B08/B11 onto `s2.DST_RES == ANALYSIS_RES` with the helper's default bilinear resampling. Reproject SCL with `resampling=s2.Resampling.nearest`; rasterio remains lazy from the pure-test module's perspective.
+- Build clear land from SCL classes 4/5 and intersect it with the department mask and positive, finite, offset-corrected reflectances. Compute NDVI from B08/B04 and NDMI from B08/B11, then require both indices finite. Usable coverage is `jointly_usable.sum() / department_mask.sum()` and must be at least 95%.
+- Define active vegetation as jointly usable NDVI `> 0.25`. Compute hectares on `ANALYSIS_RES`, with longitude scaled by `cos(latitude)`. Emit the unvalidated heuristic ±15% scenario band. Add `ndviMedio` and `ndmiMedio` only when the published active area is nonzero; NDMI uses exactly the active-NDVI pixels.
+- Keep outside-boundary pixels as NaN. `resize_colorized_for_display` alone downsamples to `DISPLAY_RES`, preserves alpha in `{0, 200}`, and the atomic writer publishes the PNG, bounds metadata, and schema-compatible JSON only after a scene passes coverage.
 
+- [ ] **Step 2: Run focused tests and syntax checks**
 
-def colorize_ndvi(ndvi, mask):
-    # Red -> yellow -> green ramp (matches src/lib/colors.ts stops).
-    stops = [(-0.2, (215, 48, 39)), (0.2, (254, 224, 139)), (0.6, (26, 152, 80))]
-    h, w = ndvi.shape
-    rgba = np.zeros((h, w, 4), dtype=np.uint8)
-    for i in range(len(stops) - 1):
-        v0, c0 = stops[i]; v1, c1 = stops[i + 1]
-        band = (ndvi >= v0) & (ndvi < v1) & mask
-        t = np.clip((ndvi - v0) / (v1 - v0), 0, 1)
-        for k in range(3):
-            rgba[..., k] = np.where(band, (c0[k] + t * (c1[k] - c0[k])).astype(np.uint8), rgba[..., k])
-    rgba[..., 3] = np.where(mask & (ndvi >= stops[0][0]), 200, 0)
-    return rgba
-
-
-def main():
-    cat = open_catalog()
-    scenes = find_scenes(BBOX, mgrs_tile=None, max_cloud=60, limit=10)
-    if not scenes:
-        print("BLOCKED: no Sentinel-2 scene found for Vinchina bbox")
-        return
-    item = scenes[0]
-    fecha = (item.properties.get("datetime") or item.properties.get("start_datetime") or "")[:10]
-    # Rasterize the exact Vinchina department geometry onto the analysis grid.
-    geometry = load_department_geometry("public/data/bermejo-deptos.geojson", "Vinchina")
-    department = rasterize_department_mask(geometry, BBOX, ANALYSIS_RES)  # all_touched=False
-    b04 = to_reflectance(read_band_to_4326(download_asset(item, "B04"), BBOX, ANALYSIS_RES))
-    b08 = to_reflectance(read_band_to_4326(download_asset(item, "B08"), BBOX, ANALYSIS_RES))
-    b11 = to_reflectance(read_band_to_4326(download_asset(item, "B11"), BBOX, ANALYSIS_RES))
-    scl = read_band_to_4326(download_asset(item, "SCL"), BBOX, ANALYSIS_RES, resampling="nearest")
-    valid = department & clear_land(scl) & (b04 > 0) & (b08 > 0) & (b11 > 0)
-    ndvi = np.where(valid, (b08 - b04) / (b08 + b04 + 1e-6), np.nan)
-    ndmi = np.where(valid, (b08 - b11) / (b08 + b11 + 1e-6), np.nan)
-    jointly_valid = department & np.isfinite(ndvi) & np.isfinite(ndmi)
-    ndvi = np.where(jointly_valid, ndvi, np.nan)
-    ndmi = np.where(jointly_valid, ndmi, np.nan)
-    usable_coverage = jointly_valid.sum() / department.sum()
-
-    # Active-vegetation area (observed): count active pixels x pixel ground area.
-    active = jointly_valid & (ndvi > NDVI_ACTIVE)
-    lat0 = (BBOX[1] + BBOX[3]) / 2
-    px_m2 = (ANALYSIS_RES * 110_574) * (ANALYSIS_RES * 111_320 * np.cos(np.radians(lat0)))
-    ha_central = float(active.sum()) * px_m2 / 10_000.0
-
-    out = {
-        "fecha": fecha,
-        "haActivaMin": round(ha_central * (1 - REL_MARGIN)),
-        "haActivaMax": round(ha_central * (1 + REL_MARGIN)),
-    }
-    if active.any() and out["haActivaMax"] > 0:
-        out["ndviMedio"] = round(float(np.nanmean(ndvi[active])), 3)
-        out["ndmiMedio"] = round(float(np.nanmean(ndmi[active])), 3)
-    (ROOT / "public" / "data" / "vinchina-satelital.json").write_text(
-        json.dumps(out, ensure_ascii=False), encoding="utf-8")
-
-    # Raster PNG + bounds for the map overlay.
-    from PIL import Image
-    # Outside-boundary pixels remain NaN/transparent; resize only for display.
-    rgba = colorize_ndvi(ndvi, jointly_valid)
-    Image.fromarray(rgba, "RGBA").save(ROOT / "public" / "raster" / "vinchina-ndvi.png")
-    bounds = {"coordinates": [[BBOX[0], BBOX[3]], [BBOX[2], BBOX[3]], [BBOX[2], BBOX[1]], [BBOX[0], BBOX[1]]], "captura": fecha}
-    (ROOT / "public" / "raster" / "vinchina-ndvi-bounds.json").write_text(
-        json.dumps(bounds, ensure_ascii=False), encoding="utf-8")
-    print("vinchina-satelital.json:", out)
-
-
-if __name__ == "__main__":
-    main()
+```powershell
+python -m unittest scripts/test_vinchina_ndvi.py
+python -m py_compile scripts/vinchina_ndvi.py scripts/s2_common.py scripts/test_vinchina_ndvi.py
 ```
 
-> NOTE on `find_scenes(..., mgrs_tile=None, ...)`: if the existing helper requires a tile, the implementer must either (a) add a `mgrs_tile=None` branch that searches by bbox intersection only, or (b) determine Vinchina's tile via a one-off STAC query and pass it. Confirm against the actual `s2_common.find_scenes` signature before running.
+Expected: both commands exit 0. The full network/STAC run belongs in GitHub Actions because local geospatial dependencies may be unavailable.
 
-- [ ] **Step 2: Syntax-check**
+- [ ] **Step 3: Preserve workflow test/order behavior**
 
-Run: `python -m py_compile scripts/vinchina_ndvi.py scripts/s2_common.py`
-Expected: exit 0. (Full run happens on the Action — geospatial deps are not installed locally on Windows.)
+The workflow installs rasterio and the other Python dependencies, then runs the focused unittest before the adjacent `python scripts/modis_ndvi.py` and `python scripts/vinchina_ndvi.py` commands. Keep MODIS immediately before Vinchina.
 
-- [ ] **Step 3: Add the script to the workflow**
+- [ ] **Step 4: Verify the output contract**
 
-In `.github/workflows/satelital.yml`, under the "Run pipeline" step, add the line after the other scripts:
-
-```yaml
-          python scripts/modis_ndvi.py
-          python scripts/vinchina_ndvi.py
-```
-
-- [ ] **Step 4: Commit**
-
-```bash
-git add scripts/vinchina_ndvi.py .github/workflows/satelital.yml
-git commit -m "feat(pipeline): Sentinel-2 Vinchina NDVI + observed active-area estimate (range)"
-```
+`public/data/vinchina-satelital.json` must satisfy `VinchinaSatelitalSchema`: required `fecha`, `haActivaMin`, and `haActivaMax`; optional active-zone `ndviMedio`/`ndmiMedio`, with neither mean allowed when `haActivaMax == 0`. The bounds metadata must state the Vinchina AOI mask and active-zone NDMI method; the overlay must remain transparent outside the boundary.
 
 ---
 

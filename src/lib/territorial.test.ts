@@ -109,6 +109,17 @@ describe("VinchinaSatelitalSchema", () => {
       }).success,
     ).toBe(false);
   });
+
+  it("rejects active-zone NDMI when active area is zero", () => {
+    expect(
+      VinchinaSatelitalSchema.safeParse({
+        fecha: "2026-05-24",
+        haActivaMin: 0,
+        haActivaMax: 0,
+        ndmiMedio: 0,
+      }).success,
+    ).toBe(false);
+  });
 });
 
 describe("areaBand", () => {

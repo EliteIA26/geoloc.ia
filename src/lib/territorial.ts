@@ -42,13 +42,18 @@ export const VinchinaSatelitalSchema = z
     message: "haActivaMin must not exceed haActivaMax",
     path: ["haActivaMin"],
   })
-  .refine(
-    (data) => !(data.haActivaMax === 0 && data.ndviMedio !== undefined),
-    {
-      message: "ndviMedio requires observed active area",
-      path: ["ndviMedio"],
-    },
-  );
+  .superRefine((data, context) => {
+    if (data.haActivaMax !== 0) return;
+    for (const field of ["ndviMedio", "ndmiMedio"] as const) {
+      if (data[field] !== undefined) {
+        context.addIssue({
+          code: "custom",
+          message: `${field} requires observed active area`,
+          path: [field],
+        });
+      }
+    }
+  });
 export type VinchinaSatelital = z.infer<typeof VinchinaSatelitalSchema>;
 
 export function areaBand(
