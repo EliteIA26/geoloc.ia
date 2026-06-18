@@ -26,7 +26,7 @@ Mapa de atores, score de "potencial", cadastro de produtores, identificação de
 - **Rota dedicada** `/bermejo` (client component, mesmo padrão do `/panel-premium`) — entrada limpa para apresentar, sem o painel agrícola junto.
 - `src/lib/territorial.ts` — schemas Zod + loaders (espelha `satelital.ts`); degradação graciosa se um arquivo faltar.
 - **Dados:**
-  - `public/data/territorial-vinchina.json` — indicadores curados (Censo 2022, CEP XXI), cada um com `fonte`, `fecha`, `confianza`.
+  - `public/data/territorial-vinchina.json` — indicadores curados (Censos 2010/2022, CEP XXI, DNV, Ministerio del Interior e POT 2015), cada um com `fonte`, `fecha`, `confianza` e URL oficial auditável.
   - `public/data/bermejo-deptos.geojson` — os 3 deptos (de IGN; reutiliza/filtra o que já temos).
   - `public/data/vinchina-localidades.geojson` — Vinchina, Jagüé.
   - `public/data/corredor-pircas-negras.geojson` — RN76 → Paso Pircas Negras (DNV; geometria oficial da RN76).
@@ -41,7 +41,7 @@ Uma tela, dois painéis:
 - **Briefing (aside) — arco de 3 capítulos (rolagem):**
   1. **Contexto socio-productivo** ("o que é Vinchina"): atividade econômica + emprego formal por setor (substância produtiva); população 2010/2022 + variação **−1,2%** como apoio (mão de obra / despovoamento).
   2. **Produção observada (satélite, o "aha"):** *"área com vegetação ativa observada: X–Y ha, confiança média"* + NDVI/NDMI (vigor/umidade). A realidade produtiva atual que a província não tem.
-  3. **Logística / conexão com Chile:** corredor a Pircas Negras — distância, status **"incipiente"** (citação do POT), a oportunidade produtiva que habilita.
+  3. **Logística / conexão com Chile:** corredor a Pircas Negras — distância vial estimada sobre a geometria oficial DNV, status histórico **"incipiente"** (POT 2015, p. 35), a oportunidade produtiva que habilita.
 - **Cada indicador** carrega selo **fonte · data · confiança**. Cabeçalho enquadra como *insumo para o Plan de Desarrollo Productivo* (POT 2015 como base relacionada). O arco lidera pela substância **produtiva** (economia + produção observada + logística); demografia e água entram como **contexto de apoio à decisão produtiva** (mão de obra, água pra produção).
 
 ## 5. Dados, fontes e regras de honestidade
@@ -50,16 +50,16 @@ Classificação (selo em cada indicador): **oficial / observado / estimado / dec
 
 | Camada | Fonte | Data | Confiança |
 |---|---|---|---|
-| População 2010/2022, variação, atividade econômica | INDEC Censo 2022 | 2022 | oficial |
-| Emprego formal por setor | CEP XXI | recente | oficial (rotular "formal") |
+| População 2010/2022 e variação | INDEC Censos 2010 e 2022 | 2010–2022 | oficial |
+| Estabelecimentos e emprego formal registrado por setor | CEP XXI · Dados de estabelecimentos por departamento e atividade | 2022 | oficial (rotular "formal"; exclui informalidade e conta própria) |
 | Área com vegetação ativa (ha ± faixa) | Sentinel-2 (NDVI>limiar) | ~mensal | observado/estimado |
 | NDVI / NDMI (vigor / umidade) | Sentinel-2 | ~mensal | observado |
-| RN76 / Pircas Negras / distância | DNV (geometria oficial da RN76) + Ministerio del Interior (passo/altitude) + POT 2015 (diagnóstico) | atual / 2015 | oficial |
+| RN76 / Pircas Negras / distância / diagnóstico | DNV (geometria oficial da RN76) + Ministerio del Interior (passo/altitude) + POT 2015, p. 35 (diagnóstico histórico) | 2025-04-23 / 2025-05-16 / 2015 | oficial para fontes; estimado para a distância derivada |
 
 **Regras (inegociáveis):**
 - O satélite mede **"vegetação ativa observada"** — pode ser cultivo **ou** vegetação natural. **NUNCA** afirmar "X ha de [cultivo]"; o rótulo deixa claro que distinguir cultivo exige validação local.
-- Estimativas **sempre** com faixa + nível de confiança; nunca número único "exato".
-- Corredor Chile: status **"incipiente"** (POT 2015) — não prometer fluxo ativo.
+- Estimativas biofísicas **sempre** com faixa + nível de confiança; nunca número único "exato". A distância vial derivada é arredondada e explicita geometria, método e que não é linha reta.
+- Corredor Chile: status histórico **"incipiente"** (POT 2015, p. 35, seção Subsistema físico espacial) — não tratar como avaliação atual nem prometer fluxo ativo.
 - Censo/CEP: snapshots oficiais **estáticos**, claramente datados (não "online"/tempo real).
 
 ## 6. Pipeline a gerar

@@ -7,7 +7,8 @@
       "valor": "2.699",
       "fonte": "INDEC Censo 2022",
       "fecha": "2022",
-      "confianza": "oficial"
+      "confianza": "oficial",
+      "url": "https://www.indec.gob.ar/ftp/cuadros/poblacion/c2022_larioja_est_c2_12.xlsx"
     },
     {
       "etiqueta": "Variación 2010–2022",
@@ -15,15 +16,26 @@
       "fonte": "INDEC Censos 2010 y 2022",
       "fecha": "2010–2022",
       "confianza": "oficial",
-      "nota": "despoblamiento — contrasta con +15,1% provincial"
+      "url": "https://www.indec.gob.ar/ftp/censos/2010/CuadrosDefinitivos/P1-P_La_Rioja.xls",
+      "nota": "comparación entre Censo 2010 (2.731) y Censo 2022 (2.699); este enlace abre la base 2010 y el indicador anterior, la base 2022; despoblamiento — contrasta con +15,1% provincial"
     },
     {
       "etiqueta": "Establecimientos formales por sector",
       "valor": "15 establecimientos registrados; lideran comercio (4), minería (3) y transporte y almacenamiento (3)",
-      "fonte": "CEP XXI",
+      "fonte": "CEP XXI · Datos de establecimientos por departamento y actividad",
       "fecha": "2022",
       "confianza": "oficial",
+      "url": "https://cdn.produccion.gob.ar/cdn-cep/establecimientos-productivos/Datos_por_departamento_y_actividad.csv",
       "nota": "mide establecimientos registrados, no empleo ni producción; subrepresenta la informalidad rural"
+    },
+    {
+      "etiqueta": "Empleo formal registrado por sector",
+      "valor": "216 puestos de trabajo registrados: construcción (127), transporte y almacenamiento (49), agricultura (11), minería (11), comercio (10), finanzas y seguros (5), administración y apoyo (2), y alojamiento y comidas (1)",
+      "fonte": "CEP XXI · Datos de establecimientos por departamento y actividad",
+      "fecha": "2022",
+      "confianza": "oficial",
+      "url": "https://cdn.produccion.gob.ar/cdn-cep/establecimientos-productivos/Datos_por_departamento_y_actividad.csv",
+      "nota": "puestos asalariados registrados; excluye empleo no registrado y trabajo por cuenta propia, incluida la actividad rural informal"
     }
   ],
   "satelite": [],
@@ -34,15 +46,26 @@
       "fonte": "Ministerio del Interior · Centros de Frontera",
       "fecha": "2025-05-16",
       "confianza": "oficial",
+      "url": "https://www.argentina.gob.ar/interior/centros-de-frontera/pircas-negras",
       "nota": "4.164 m · RN76 · Corredor Bioceánico NOA-Centro"
+    },
+    {
+      "etiqueta": "Distancia vial Vinchina–Paso Pircas Negras",
+      "valor": "183,4 km",
+      "fonte": "DNV · Rutas Nacionales (RN 0076)",
+      "fecha": "2025-04-23",
+      "confianza": "estimado",
+      "url": "https://datos.gob.ar/dataset/transporte-rutas-nacionales/archivo/transporte_98a9ee1b-321d-4b68-b00e-bf44ae448e2c",
+      "nota": "calculada sobre la geometría vial oficial simplificada de RN 0076; no es distancia en línea recta"
     },
     {
       "etiqueta": "Diagnóstico del corredor en el POT (2015)",
       "valor": "incipiente",
-      "fonte": "POT Valle del Bermejo",
+      "fonte": "Plan de Ordenamiento Territorial para el Valle del Bermejo – Informe Final",
       "fecha": "2015",
       "confianza": "oficial",
-      "nota": "diagnóstico de 2015; depende de obra vial (cita textual del POT)"
+      "url": "https://www.argentina.gob.ar/sites/default/files/plan_de_ordenamiento_territorial_valle_del_bermejo_la_rioja_informe_final_.pdf",
+      "nota": "diagnóstico histórico de 2015; “En la actualidad es incipiente el desarrollo de este corredor internacional” (p. 35, Subsistema físico espacial)"
     }
   ]
 }
