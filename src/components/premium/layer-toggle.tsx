@@ -17,7 +17,7 @@ export default function LayerToggle({
     { key: "none", label: "Satélite Puro", icon: <Satellite className="w-3.5 h-3.5" /> },
   ];
   return (
-    <div className="inline-flex gap-1 rounded-xl p-1 w-full bg-black/20 backdrop-blur-md shadow-inner border border-white/5">
+    <div className="inline-flex gap-0.5 rounded-xl p-0.5 w-fit bg-black/20 backdrop-blur-md border border-white/5">
       {opts.map((o) => {
         const isActive = active === o.key;
         return (
@@ -26,13 +26,13 @@ export default function LayerToggle({
             type="button"
             onClick={() => onChange(o.key)}
             aria-pressed={isActive}
-            className={`flex-1 flex items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-[11px] sm:text-[12px] font-semibold transition-all duration-300 ${
+            className={`flex items-center justify-center gap-1.5 rounded-[10px] px-3 py-1.5 text-[10px] sm:text-[11px] font-medium transition-all duration-300 ${
               isActive
                 ? o.key === 'none' 
-                  ? "bg-slate-700 text-white shadow-lg shadow-slate-900/30"
+                  ? "bg-white/10 text-white shadow-lg"
                   : o.key === 'ndwi'
-                    ? "bg-blue-600 text-white shadow-lg shadow-blue-600/30"
-                    : "bg-emerald-600 text-white shadow-lg shadow-emerald-600/30"
+                    ? "bg-blue-500/20 text-blue-400 shadow-lg"
+                    : "bg-primary/20 text-primary shadow-lg"
                 : "text-muted-foreground hover:text-foreground hover:bg-white/5"
             }`}
           >
