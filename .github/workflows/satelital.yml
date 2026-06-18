@@ -19,8 +19,8 @@ jobs:
         run: |
           python scripts/ndvi_snapshot.py
           python scripts/snow_snapshot.py
-          python scripts/modis_ndvi.py
           python -m unittest scripts/test_vinchina_ndvi.py
+          python scripts/modis_ndvi.py
           python scripts/vinchina_ndvi.py
       - name: Commit if changed
         run: |

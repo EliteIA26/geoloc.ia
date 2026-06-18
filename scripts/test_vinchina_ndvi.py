@@ -11,6 +11,32 @@ import vinchina_ndvi as subject
 
 
 class VinchinaNdviTests(unittest.TestCase):
+    def test_workflow_keeps_vinchina_immediately_after_modis(self):
+        workflow = (subject.ROOT / ".github" / "workflows" / "satelital.yml").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn(
+            "          python -m unittest scripts/test_vinchina_ndvi.py\n"
+            "          python scripts/modis_ndvi.py\n"
+            "          python scripts/vinchina_ndvi.py\n",
+            workflow,
+        )
+
+    def test_display_resize_keeps_binary_alpha_and_active_green(self):
+        ndvi = np.array(
+            [
+                [np.nan, 0.6, 0.6],
+                [np.nan, 0.6, 0.6],
+                [np.nan, 0.6, 0.6],
+            ]
+        )
+
+        display = subject.resize_colorized_for_display(ndvi, (12, 12))
+
+        self.assertEqual(set(np.unique(display[..., 3])), {0, 200})
+        self.assertEqual(display[-1, -1].tolist(), [26, 152, 80, 200])
+
     def test_scl_mask_allows_only_clear_land_classes(self):
         scl = np.arange(12, dtype=np.uint8)
         usable = subject.clear_land_mask(scl)

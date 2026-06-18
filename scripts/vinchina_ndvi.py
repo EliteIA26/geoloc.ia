@@ -157,6 +157,53 @@ def colorize_ndvi(ndvi):
     return rgba
 
 
+def resize_colorized_for_display(ndvi, size):
+    """Resize RGB smoothly while preserving alpha strictly as 0 or 200."""
+    from PIL import Image
+
+    ndvi = np.asarray(ndvi)
+    rgba = colorize_ndvi(ndvi)
+    valid = np.isfinite(ndvi) & (ndvi >= -1.0) & (ndvi <= 1.0)
+    valid_float = valid.astype(np.float32)
+    weights = np.asarray(
+        Image.fromarray(valid_float).resize(size, resample=Image.Resampling.LANCZOS)
+    )
+    rgb_float = np.zeros((*weights.shape, 3), dtype=np.float32)
+    for channel in range(3):
+        weighted_channel = rgba[..., channel].astype(np.float32) * valid_float
+        numerator = np.asarray(
+            Image.fromarray(weighted_channel).resize(
+                size, resample=Image.Resampling.LANCZOS
+            )
+        )
+        np.divide(
+            numerator,
+            weights,
+            out=rgb_float[..., channel],
+            where=weights > 1e-6,
+        )
+    rgb = np.clip(np.rint(rgb_float), 0, 255).astype(np.uint8)
+    source_alpha = np.where(valid, 200, 0).astype(np.uint8)
+    alpha = np.asarray(
+        Image.fromarray(source_alpha, "L").resize(
+            size, resample=Image.Resampling.NEAREST
+        )
+    )
+    display = np.empty((*alpha.shape, 4), dtype=np.uint8)
+    display[..., :3] = rgb
+    display[..., 3] = alpha
+    unstable = (alpha == 200) & (weights <= 1e-6)
+    if unstable.any():
+        nearest_rgb = np.asarray(
+            Image.fromarray(rgba[..., :3], "RGB").resize(
+                size, resample=Image.Resampling.NEAREST
+            )
+        )
+        display[unstable, :3] = nearest_rgb[unstable]
+    display[alpha == 0, :3] = 0
+    return display
+
+
 def _download_scene_ndvi(s2, item, analysis_res):
     """Download B04/B08/SCL and return quality-masked native-ish NDVI."""
     temp_root = "C:/Temp" if os.path.isdir("C:/Temp") else None
@@ -250,8 +297,8 @@ def _write_outputs_atomically(ndvi, item, valid_coverage, summary):
         int(round((east - west) / DISPLAY_RES)),
         int(round((north - south) / DISPLAY_RES)),
     )
-    display_image = Image.fromarray(colorize_ndvi(ndvi), "RGBA").resize(
-        display_size, resample=Image.Resampling.LANCZOS
+    display_image = Image.fromarray(
+        resize_colorized_for_display(ndvi, display_size), "RGBA"
     )
     display_image.save(png_buffer, format="PNG")
     date = item.datetime.strftime("%Y-%m-%d")
