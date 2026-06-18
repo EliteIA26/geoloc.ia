@@ -1,5 +1,12 @@
-"""Province-wide MODIS NDVI (16-day, 250m) over La Rioja: a continuous fade
-raster + per-department zonal means. Run offline.
+"""Province-wide MODIS (16-day, 250m) over La Rioja: continuous-fade NDVI
+(vegetation) AND NDWI (moisture) rasters + per-department zonal means for both.
+Run offline.
+
+NDWI = (NIR - MIR) / (NIR + MIR) on the 250m_16_days_{NIR,MIR}_reflectance
+bands of the same composite period, mosaicked over the same 4-tile EPSG:4326
+grid and colorized with the same ramp so it fades continuously like the NDVI
+raster. Outputs larioja-ndwi.png (sharing larioja-ndvi-bounds.json) and a
+deptosNdwi block in provincia-ndvi.json.
 
 La Rioja's bbox spans FOUR MODIS sinusoidal tiles (h11v11, h11v12, h12v11,
 h12v12), so we fetch every NDVI asset for the newest 16-day composite period
@@ -33,11 +40,17 @@ W, S, E, N = BBOX
 RES = 0.0025  # ~250 m at this latitude
 COLLECTION = "modis-13Q1-061"  # CONFIRMED via live STAC
 NDVI_ASSET = "250m_16_days_NDVI"  # CONFIRMED via live STAC
+# Surface-reflectance bands for the moisture index (NDWI). MODIS 13Q1 ships
+# per-band reflectance composites; NIR (band 2, ~858 nm) + MIR (band 7,
+# ~2130 nm) give a water/moisture-sensitive normalized index.
+NIR_ASSET = "250m_16_days_NIR_reflectance"  # per plan
+MIR_ASSET = "250m_16_days_MIR_reflectance"  # per plan
 SCALE = 0.0001  # CONFIRMED via asset raster:bands
 NODATA = -3000  # CONFIRMED via GeoTIFF nodata tag + value histogram
 
 ROOT = s2.ROOT
 PNG = os.path.join(ROOT, "public", "raster", "larioja-ndvi.png")
+PNG_NDWI = os.path.join(ROOT, "public", "raster", "larioja-ndwi.png")
 BOUNDS = os.path.join(ROOT, "public", "raster", "larioja-ndvi-bounds.json")
 PROV = os.path.join(ROOT, "public", "data", "provincia-ndvi.json")
 DEPTOS = os.path.join(ROOT, "public", "data", "departamentos.geojson")
@@ -86,17 +99,21 @@ def newest_period_items(catalog):
     return period, newest_start
 
 
-def mosaic_ndvi(items, tmp):
-    """Download each tile's NDVI asset and reproject into one shared 4326 grid,
+def mosaic_band(items, tmp, asset_key, prefix):
+    """Download each tile's `asset_key` and reproject into one shared 4326 grid,
     keeping the first valid pixel per cell (tiles do not overlap in content).
-    Returns scaled NDVI (float32, NaN where no valid data)."""
+    Returns scaled values (float32, NaN where no valid data) + the dst grid.
+
+    La Rioja spans 4 MODIS sinusoidal tiles, so every item is mosaicked (no
+    limit=1). nodata is -3000 (not raw==0); reproject with src_nodata=NODATA so
+    the fill value never bleeds into valid pixels, then NaN marks no-data."""
     width = int(round((E - W) / RES))
     height = int(round((N - S) / RES))
     dst_transform = rasterio.transform.from_bounds(W, S, E, N, width, height)
     acc = np.full((height, width), np.nan, dtype="float32")
     for i, it in enumerate(items):
         local = s2.download_asset(
-            it.assets[NDVI_ASSET].href, os.path.join(tmp, f"ndvi_{i}.tif")
+            it.assets[asset_key].href, os.path.join(tmp, f"{prefix}_{i}.tif")
         )
         try:
             with rasterio.open(local) as src:
@@ -123,6 +140,33 @@ def mosaic_ndvi(items, tmp):
     return acc * SCALE, dst_transform, width, height
 
 
+def mosaic_ndvi(items, tmp):
+    """Backward-compatible NDVI mosaic (scaled float32, NaN nodata)."""
+    return mosaic_band(items, tmp, NDVI_ASSET, "ndvi")
+
+
+def zonal_means(grid, finite, tr, width, height, features):
+    """Per-department mean of `grid` over valid pixels. Returns {nombre: mean}."""
+    out = {}
+    for feat in features:
+        nombre = feat["properties"].get("nombre")
+        try:
+            mask = geometry_mask(
+                [feat["geometry"]],
+                out_shape=(height, width),
+                transform=tr,
+                invert=True,
+            )
+            vals = grid[mask & finite]
+            if vals.size:
+                out[nombre] = round(float(vals.mean()), 3)
+            else:
+                print("zonal skip (no valid pixels):", nombre)
+        except Exception as e:  # noqa: BLE001
+            print("zonal skip", nombre, e)
+    return out
+
+
 def main():
     catalog = s2.open_catalog()
     items, start = newest_period_items(catalog)
@@ -139,6 +183,10 @@ def main():
     )
     try:
         ndvi, tr, width, height = mosaic_ndvi(items, tmp)
+        # Moisture index (NDWI) from the same composite period / same dst grid:
+        # NDWI = (NIR - MIR) / (NIR + MIR) on surface reflectance.
+        nir, _, _, _ = mosaic_band(items, tmp, NIR_ASSET, "nir")
+        mir, _, _, _ = mosaic_band(items, tmp, MIR_ASSET, "mir")
     finally:
         try:
             os.rmdir(tmp)
@@ -152,8 +200,25 @@ def main():
         f"min/mean/max {np.nanmin(ndvi):.3f}/{np.nanmean(ndvi):.3f}/{np.nanmax(ndvi):.3f}"
     )
 
+    # NDWI on reflectance; mask where either band had no data.
+    denom = nir + mir
+    with np.errstate(divide="ignore", invalid="ignore"):
+        ndwi = (nir - mir) / denom
+    ndwi[(denom == 0) | ~np.isfinite(nir) | ~np.isfinite(mir)] = np.nan
+    finite_w = np.isfinite(ndwi)
+    if finite_w.any():
+        print(
+            f"NDWI grid {width}x{height} | valid {100.0 * finite_w.sum() / ndwi.size:.1f}% | "
+            f"min/mean/max {np.nanmin(ndwi):.3f}/{np.nanmean(ndwi):.3f}/{np.nanmax(ndwi):.3f}"
+        )
+    else:
+        print("NDWI: no valid pixels (NIR/MIR did not cover the bbox)")
+
     os.makedirs(os.path.dirname(PNG), exist_ok=True)
+    # Same fluid 5-stop colorize ramp as NDVI -> continuous fade.
     Image.fromarray(colorize(ndvi), "RGBA").save(PNG)
+    Image.fromarray(colorize(ndwi), "RGBA").save(PNG_NDWI)
+    # One bounds JSON serves both rasters (identical grid/bbox).
     with open(BOUNDS, "w", encoding="utf-8") as f:
         json.dump(
             {
@@ -165,32 +230,24 @@ def main():
             indent=2,
         )
 
-    # Per-department zonal means.
+    # Per-department zonal means (NDVI + NDWI), same masks/grid.
     with open(DEPTOS, encoding="utf-8") as f:
         gj = json.load(f)
-    deptos = {}
-    for feat in gj["features"]:
-        nombre = feat["properties"].get("nombre")
-        try:
-            mask = geometry_mask(
-                [feat["geometry"]],
-                out_shape=(height, width),
-                transform=tr,
-                invert=True,
-            )
-            vals = ndvi[mask & finite]
-            if vals.size:
-                deptos[nombre] = round(float(vals.mean()), 3)
-            else:
-                print("zonal skip (no valid pixels):", nombre)
-        except Exception as e:  # noqa: BLE001
-            print("zonal skip", nombre, e)
+    feats = gj["features"]
+    deptos = zonal_means(ndvi, finite, tr, width, height, feats)
+    deptos_ndwi = zonal_means(ndwi, finite_w, tr, width, height, feats)
     with open(PROV, "w", encoding="utf-8") as f:
-        json.dump({"fecha": fecha, "deptos": deptos}, f, ensure_ascii=False, indent=2)
+        json.dump(
+            {"fecha": fecha, "deptos": deptos, "deptosNdwi": deptos_ndwi},
+            f,
+            ensure_ascii=False,
+            indent=2,
+        )
 
     print(f"Wrote {PNG}")
+    print(f"Wrote {PNG_NDWI}")
     print(f"Wrote {BOUNDS}")
-    print(f"Wrote {PROV} ({len(deptos)} deptos)")
+    print(f"Wrote {PROV} ({len(deptos)} deptos, {len(deptos_ndwi)} ndwi)")
 
 
 if __name__ == "__main__":

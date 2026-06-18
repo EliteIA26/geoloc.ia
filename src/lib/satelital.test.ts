@@ -45,3 +45,20 @@ describe("ProvinciaNdviSchema", () => {
     expect(v.deptos.Arauco).toBe(0.42);
   });
 });
+
+import { AimogastaSerieSchema } from "./satelital";
+
+describe("AimogastaSerieSchema", () => {
+  it("parses the scene list", () => {
+    const v = AimogastaSerieSchema.parse({
+      escenas: [{ fecha: "2026-05-24", nubes: 6.7, png: "aimogasta-ndvi-2026-05-24.png", coordinates: [[-66.8,-27.7],[-66.7,-27.7],[-66.7,-27.9],[-66.8,-27.9]] }],
+    });
+    expect(v.escenas[0].fecha).toBe("2026-05-24");
+  });
+});
+describe("ProvinciaNdviSchema deptosNdwi", () => {
+  it("accepts optional deptosNdwi", () => {
+    expect(() => ProvinciaNdviSchema.parse({ fecha: "2026-05-25", deptos: { Arauco: 0.4 }, deptosNdwi: { Arauco: 0.1 } })).not.toThrow();
+    expect(() => ProvinciaNdviSchema.parse({ fecha: "2026-05-25", deptos: { Arauco: 0.4 } })).not.toThrow();
+  });
+});

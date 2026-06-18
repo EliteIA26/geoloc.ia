@@ -34,23 +34,23 @@ const LEGENDS: Record<
 export default function MapLegend({ layer }: { layer: LayerKey }) {
   const { title, rows } = LEGENDS[layer];
   return (
-    <div className="w-60 rounded-xl border border-border bg-card/90 p-3 shadow-lg backdrop-blur-sm">
-      <p className="mb-2 text-xs font-semibold leading-tight text-emerald-950">
+    <div className="w-fit min-w-[200px] rounded-xl border border-white/5 bg-card/60 p-3 shadow-lg backdrop-blur-md">
+      <p className="mb-2 text-xs font-semibold leading-tight text-primary">
         {title}
       </p>
       <ul className="space-y-1.5">
         {rows.map((r) => (
           <li key={r.label} className="flex items-center gap-2">
             <span
-              className="h-3.5 w-5 shrink-0 rounded-sm ring-1 ring-border"
+              className="h-3 w-4 shrink-0 rounded-sm shadow-[0_0_5px_rgba(0,0,0,0.5)]"
               style={{ backgroundColor: r.color }}
               aria-hidden
             />
-            <span className="text-[11px] leading-tight text-gray-700">{r.label}</span>
+            <span className="text-[11px] leading-tight text-muted-foreground">{r.label}</span>
           </li>
         ))}
       </ul>
-      <p className="mt-2.5 border-t border-gray-200 pt-2 text-[10px] text-gray-500">
+      <p className="mt-2.5 border-t border-white/5 pt-2 text-[9px] text-muted-foreground/60">
         Fuente: Sentinel-2 (Copernicus)
       </p>
     </div>
