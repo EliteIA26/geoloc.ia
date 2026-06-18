@@ -8,10 +8,10 @@ type IndicatorCardProps = {
 export default function IndicatorCard({ ind }: IndicatorCardProps) {
   return (
     <div className="glass-panel space-y-1 p-3">
-      <p className="text-[11px] text-muted-foreground">{ind.etiqueta}</p>
-      <p className="text-sm text-foreground">{ind.valor}</p>
+      <div className="text-[11px] text-muted-foreground">{ind.etiqueta}</div>
+      <div className="text-sm text-[var(--foreground)]">{ind.valor}</div>
       {ind.nota ? (
-        <p className="text-[11px] text-muted-foreground">{ind.nota}</p>
+        <div className="text-[11px] text-muted-foreground">{ind.nota}</div>
       ) : null}
       <SourceBadge
         fonte={ind.fonte}

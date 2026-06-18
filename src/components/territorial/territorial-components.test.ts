@@ -54,9 +54,15 @@ describe("IndicatorCard", () => {
       }),
     );
 
-    expect(markup).toContain("Población 2022");
-    expect(markup).toContain("2.500 habitantes");
-    expect(markup).toContain("Variación intercensal");
+    expect(markup).toContain(
+      '<div class="text-[11px] text-muted-foreground">Población 2022</div>',
+    );
+    expect(markup).toContain(
+      '<div class="text-sm text-[var(--foreground)]">2.500 habitantes</div>',
+    );
+    expect(markup).toContain(
+      '<div class="text-[11px] text-muted-foreground">Variación intercensal</div>',
+    );
     expect(markup).toContain("INDEC Censo 2022");
   });
 
@@ -64,7 +70,7 @@ describe("IndicatorCard", () => {
     const markup = renderToStaticMarkup(createElement(IndicatorCard, { ind: indicator }));
 
     expect(markup).not.toContain("Variación intercensal");
-    expect(markup.match(/<p/g)).toHaveLength(2);
+    expect(markup).not.toContain("<p");
   });
 });
 
