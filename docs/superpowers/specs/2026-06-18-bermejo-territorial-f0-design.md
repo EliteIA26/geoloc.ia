@@ -6,7 +6,11 @@
 
 Federico (gerente FOGAPLAR) pediu, além do agro, um observatório territorial-produtivo do **Valle del Bermejo** para subsidiar um *plan productivo* a apresentar a futuras autoridades. Audiência **B2G**: planejadores, autoridades, Ministerio — não o produtor individual. Ênfase explícita dele: **Vinchina** e a **conexão com o Chile**; e a dor de a província não ter informação produtiva atualizada ("casi online").
 
-Este é um **demo apresentável** (o "video/hito" que ele pediu) — não a plataforma completa. **Posicionamento-chave:** *atualizar o diagnóstico do POT 2015 do Valle del Bermejo (oficial, horizonte 2020, vencido) com Censo 2022 + observação satelital atual.*
+Este é um **demo apresentável** (o "video/hito" que ele pediu) — não a plataforma completa.
+
+**Esclarecimento do Federico (2026-06-18):** o projeto dele *"está relacionado [ao POT], pero el nuestro es un plan de desarrollo productivo"*. Ou seja, NÃO é o POT (ordenamento territorial = organização do espaço/uso do solo). O POT 2015 é o **diagnóstico territorial de base / precedente relacionado**; o instrumento do Federico é um **Plan de Desarrollo Productivo** (economia: o que produzir, cadeias de valor, oportunidades produtivas, emprego).
+
+**Posicionamento-chave:** *inteligência territorial como insumo para o **Plan de Desarrollo Productivo** de Vinchina / Valle del Bermejo* — mostra a realidade produtiva atual (economia + produção observada + logística) sobre o território, com o POT 2015 citado como base relacionada.
 
 ## 2. Escopo
 
@@ -35,10 +39,10 @@ Uma tela, dois painéis:
 
 - **Mapa 3D (centro):** os 3 deptos visíveis, **Vinchina destacada**, e o **corredor RN76 → Pircas Negras** traçado até a fronteira com o Chile. Reusa o voo 3D/órbita ao focar Vinchina.
 - **Briefing (aside) — arco de 3 capítulos (rolagem):**
-  1. **Contexto** ("o que é Vinchina"): população 2010/2022 + variação **−1,2%**, atividade econômica, emprego formal por setor.
-  2. **Satélite (o "aha"):** *"área com vegetação ativa observada: X–Y ha, confiança média"* + NDVI/NDMI (vigor/umidade). O que a província não tem atualizado.
-  3. **Chile:** corredor a Pircas Negras — distância, status **"incipiente"** (citação do POT), o que habilita.
-- **Cada indicador** carrega selo **fonte · data · confiança**. Cabeçalho enquadra como *"atualização do diagnóstico do POT 2015"*.
+  1. **Contexto socio-productivo** ("o que é Vinchina"): atividade econômica + emprego formal por setor (substância produtiva); população 2010/2022 + variação **−1,2%** como apoio (mão de obra / despovoamento).
+  2. **Produção observada (satélite, o "aha"):** *"área com vegetação ativa observada: X–Y ha, confiança média"* + NDVI/NDMI (vigor/umidade). A realidade produtiva atual que a província não tem.
+  3. **Logística / conexão com Chile:** corredor a Pircas Negras — distância, status **"incipiente"** (citação do POT), a oportunidade produtiva que habilita.
+- **Cada indicador** carrega selo **fonte · data · confiança**. Cabeçalho enquadra como *insumo para o Plan de Desarrollo Productivo* (POT 2015 como base relacionada). O arco lidera pela substância **produtiva** (economia + produção observada + logística); demografia e água entram como **contexto de apoio à decisão produtiva** (mão de obra, água pra produção).
 
 ## 5. Dados, fontes e regras de honestidade
 
@@ -73,4 +77,4 @@ Classificação (selo em cada indicador): **oficial / observado / estimado / dec
 
 ## 8. Critério de sucesso
 
-Um planejador (ou o Federico) abre `/bermejo` e entende em ~1 minuto: **quem é Vinchina** (pop/despovoamento/economia), **quanta área tem vegetação produtiva ativa hoje** (com faixa + confiança), e a **conexão logística com o Chile** — com fonte/data/confiança visíveis em tudo, enquadrado como atualização do POT 2015. Apresentável por ele como "video/hito" à equipe do plano produtivo.
+Um planejador (ou o Federico) abre `/bermejo` e entende em ~1 minuto: **quem é Vinchina** (pop/despovoamento/economia), **quanta área tem vegetação produtiva ativa hoje** (com faixa + confiança), e a **conexão logística com o Chile** — com fonte/data/confiança visíveis em tudo, enquadrado como **insumo para o Plan de Desarrollo Productivo** (POT 2015 como base relacionada). Apresentável por ele como "video/hito" à equipe do plano produtivo.

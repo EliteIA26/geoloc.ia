@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build a presentable B2G demo at `/bermejo` — a 3D map of the Valle del Bermejo focused on Vinchina plus a "briefing" panel (contexto Censo 2022 → satélite/área ativa observada → corredor Chile), every indicator carrying a fonte·data·confiança badge, framed as an update of the 2015 POT diagnosis.
+**Goal:** Build a presentable B2G demo at `/bermejo` — a 3D map of the Valle del Bermejo focused on Vinchina plus a "briefing" panel (contexto Censo 2022 → satélite/área ativa observada → corredor Chile), every indicator carrying a fonte·data·confiança badge, framed as territorial intelligence feeding the **Plan de Desarrollo Productivo** (related to the 2015 POT, which provides the base territorial diagnosis — Federico: "está relacionado, pero el nuestro es un plan de desarrollo productivo").
 
 **Architecture:** New client route `/bermejo` reusing the existing MapLibre `MapShell` + premium styling. A new `src/lib/territorial.ts` (Zod schemas + loaders + pure formatters) feeds the UI from static curated JSON (Censo 2022 + CEP XXI) + GeoJSON layers (IGN) + a Sentinel-2 raster/estimate produced by a new Python pipeline on the existing Action.
 
@@ -212,7 +212,7 @@ Shape (fill `valor`/`fecha` with the REAL fetched numbers; keep the structure ex
 ```json
 {
   "depto": "Vinchina",
-  "resumen": "Vinchina · Valle del Bermejo (Región I). Actualización del diagnóstico del POT 2015 con datos 2022 + observación satelital.",
+  "resumen": "Vinchina · Valle del Bermejo (Región I). Insumo de inteligencia territorial para el Plan de Desarrollo Productivo — relacionado al POT 2015 (diagnóstico territorial de base), con datos 2022 + observación satelital.",
   "contexto": [
     { "etiqueta": "Población 2022", "valor": "<REAL>", "fonte": "INDEC Censo 2022", "fecha": "2022", "confianza": "oficial" },
     { "etiqueta": "Variación 2010–2022", "valor": "−1,2%", "fonte": "INDEC Censo 2022", "fecha": "2022", "confianza": "oficial", "nota": "despoblamiento — contrasta con +15,1% provincial" },
@@ -635,7 +635,7 @@ export default function BermejoPage() {
       </div>
       <ResizableAside>
         <div>
-          <p className="text-[11px] text-muted-foreground">Departamento · Región I (POT 2015)</p>
+          <p className="text-[11px] text-muted-foreground">Plan de Desarrollo Productivo · Valle del Bermejo</p>
           <h2 className="text-base text-[var(--foreground)]">Vinchina · Valle del Bermejo</h2>
           {data?.resumen && <p className="mt-1.5 text-sm text-muted-foreground">{data.resumen}</p>}
         </div>
@@ -644,9 +644,9 @@ export default function BermejoPage() {
 
         {data && (
           <>
-            <BriefingChapter numero={1} titulo="Contexto" indicadores={data.contexto} />
-            <BriefingChapter numero={2} titulo="Observación satelital" indicadores={[...data.satelite, ...sateliteExtra]} />
-            <BriefingChapter numero={3} titulo="Conexión con Chile" indicadores={data.chile} />
+            <BriefingChapter numero={1} titulo="Contexto socio-productivo" indicadores={data.contexto} />
+            <BriefingChapter numero={2} titulo="Producción observada (satélite)" indicadores={[...data.satelite, ...sateliteExtra]} />
+            <BriefingChapter numero={3} titulo="Logística y conexión con Chile" indicadores={data.chile} />
           </>
         )}
       </ResizableAside>
