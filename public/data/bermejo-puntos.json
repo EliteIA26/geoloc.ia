@@ -2,27 +2,163 @@
   "puntos": [
     {
       "id": "vinchina",
-      "nombre": "Vinchina",
+      "nombre": "Villa San José de Vinchina",
       "tipo": "localidad",
       "eje": "poblacion",
       "coordinates": [-68.20, -28.76],
-      "foto": null,
-      "descripcion": "Cabecera del departamento Vinchina; base de servicios del valle alto.",
-      "datos": ["población depto. 2.699 (Censo 2022)", "variación 2010–2022: −1,2%"],
+      "foto": "/img/bermejo/vinchina.jpg",
+      "credito": "Julio flavia antonella — CC BY-SA 4.0 (Wikimedia Commons)",
+      "descripcion": "Cabecera del departamento Vinchina, a 1.450 m s.n.m. en el alto valle del río Bermejo. Base de servicios para la Reserva Laguna Brava y el Paso Pircas Negras.",
+      "hero": [
+        { "etiqueta": "Población depto.", "valor": "2.699 hab." },
+        { "etiqueta": "Altitud", "valor": "1.450 m s.n.m." },
+        { "etiqueta": "Dist. La Rioja cap.", "valor": "~350 km (RN 76)" }
+      ],
+      "secciones": [
+        {
+          "titulo": "Actividad económica",
+          "items": [
+            "Agricultura de subsistencia (viñedos, horticultura de altura)",
+            "Turismo como actividad creciente (base para Laguna Brava y Pircas Negras)",
+            "Ganadería menor (caprinos, ovinos)"
+          ],
+          "fonte": "Turismo La Rioja / IGN",
+          "confianza": "declarado"
+        },
+        {
+          "titulo": "Acceso y distancias",
+          "items": [
+            "Ruta Nacional 76 desde La Rioja capital (~350 km)",
+            "Jagüé: ~50 km al noroeste por RN 76",
+            "Paso Pircas Negras: ~200 km (último surtidor de combustible antes de la frontera)"
+          ],
+          "fonte": "Argentina.gob.ar / Centros de Frontera",
+          "confianza": "oficial"
+        },
+        {
+          "titulo": "Identidad y patrimonio",
+          "items": [
+            "Cabecera del departamento Vinchina desde la organización territorial riojana",
+            "Próxima al Parque Arqueológico Estrellas de Vinchina (geoglifos diaguitas, ~3 km)",
+            "Clima árido andino (BWk); temperatura media invernal baja"
+          ],
+          "fonte": "Wikipedia / Turismo La Rioja",
+          "confianza": "observado"
+        },
+        {
+          "titulo": "Servicios",
+          "items": [
+            "Surtidor de combustible (último punto antes del Paso Pircas Negras)",
+            "Alojamientos básicos y comedores",
+            "Acceso a guías habilitados para Laguna Brava"
+          ],
+          "fonte": "Argentina.gob.ar / Centros de Frontera",
+          "confianza": "declarado"
+        }
+      ],
+      "limite": { "tipo": "departamento", "ref": "Vinchina" },
       "fonte": "INDEC Censo 2022 / IGN",
-      "confianza": "oficial"
+      "confianza": "oficial",
+      "url": "https://en.wikipedia.org/wiki/Villa_San_Jos%C3%A9_de_Vinchina"
     },
     {
       "id": "jague",
       "nombre": "Jagüé",
       "tipo": "localidad",
-      "eje": "poblacion",
+      "eje": "logistica",
       "coordinates": [-68.50, -28.55],
       "foto": null,
-      "descripcion": "Localidad del oeste del departamento, sobre el camino a Pircas Negras.",
-      "datos": ["punto de partida hacia la cordillera"],
-      "fonte": "IGN",
-      "confianza": "oficial"
+      "descripcion": "Paraje cordillerano a 1.807 m s.n.m., último punto habitado antes del Paso Pircas Negras. Punto de partida de las excursiones a la cordillera y Laguna Brava.",
+      "hero": [
+        { "etiqueta": "Altitud", "valor": "1.807 m s.n.m." },
+        { "etiqueta": "Población", "valor": "~230 hab. (2010)" },
+        { "etiqueta": "Dist. a Pircas Negras", "valor": "166 km" }
+      ],
+      "secciones": [
+        {
+          "titulo": "Función logística",
+          "items": [
+            "Último punto con servicios mínimos antes del Paso Internacional Pircas Negras (166 km)",
+            "Punto de partida de excursiones hacia Laguna Brava con guías habilitados",
+            "Conectado con La Rioja capital y Villa Unión por transporte público"
+          ],
+          "fonte": "Argentina.gob.ar / Centros de Frontera",
+          "confianza": "oficial"
+        },
+        {
+          "titulo": "Identidad",
+          "items": [
+            "Yacimiento paleontológico: fósiles de Huayracursor jaguensis (sauropodomorfo triásico), descripto en 2025",
+            "Agua dulce de vertiente; paisaje de prepuna cordillerana"
+          ],
+          "fonte": "Wikipedia / literatura científica 2025",
+          "confianza": "observado"
+        }
+      ],
+      "limite": { "tipo": "departamento", "ref": "Vinchina" },
+      "fonte": "IGN / Wikipedia",
+      "confianza": "estimado"
+    },
+    {
+      "id": "villa-union",
+      "nombre": "Villa Unión",
+      "tipo": "localidad",
+      "eje": "turismo",
+      "coordinates": [-68.22, -29.32],
+      "foto": "/img/bermejo/villa-union.jpg",
+      "credito": "miroab (Miguel) — CC BY-SA 2.0 (Wikimedia Commons)",
+      "descripcion": "Cabecera del departamento General Felipe Varela, a 1.255 m s.n.m. y 275 km al oeste de La Rioja capital. Principal base de servicios para el Parque Nacional Talampaya.",
+      "hero": [
+        { "etiqueta": "Población localidad", "valor": "5.921 hab. (2022)" },
+        { "etiqueta": "Altitud", "valor": "1.255 m s.n.m." },
+        { "etiqueta": "Dist. a Talampaya", "valor": "60 km" }
+      ],
+      "secciones": [
+        {
+          "titulo": "Actividad económica",
+          "items": [
+            "Producción agrícola orgánica: viñedos, olivos (variedad Arauco), jojoba",
+            "Turismo como eje económico: portal al PN Talampaya e Ischigualasto",
+            "Diversificación con industria olivícola en crecimiento"
+          ],
+          "fonte": "Secretaría de Turismo Villa Unión / Wikipedia",
+          "confianza": "declarado"
+        },
+        {
+          "titulo": "Acceso y distancias",
+          "items": [
+            "275 km al oeste de La Rioja capital por RN 76",
+            "60 km al Parque Nacional Talampaya",
+            "Ischigualasto (Valle de la Luna) accesible en ruta circular Talampaya-Ischigualasto"
+          ],
+          "fonte": "Secretaría de Turismo Villa Unión",
+          "confianza": "oficial"
+        },
+        {
+          "titulo": "Servicios",
+          "items": [
+            "Hotelería 2-4 estrellas, cabañas, camping",
+            "Bancos, cajeros automáticos, supermercados",
+            "Gasolineras, restaurantes, agencias de turismo",
+            "Administración del PN Talampaya en Av. Nicolás Dávila"
+          ],
+          "fonte": "Secretaría de Turismo Villa Unión",
+          "confianza": "declarado"
+        },
+        {
+          "titulo": "Identidad",
+          "items": [
+            "Embalse lateral de Villa Unión: uso agropecuario y recreativo",
+            "Cabecera de Felipe Varela y nodo del Corredor Bioceánico NOA-Centro"
+          ],
+          "fonte": "Wikipedia / Turismo La Rioja",
+          "confianza": "observado"
+        }
+      ],
+      "limite": { "tipo": "departamento", "ref": "General Felipe Varela" },
+      "fonte": "INDEC Censo 2022 / citypopulation.de / IGN",
+      "confianza": "oficial",
+      "url": "https://es.wikipedia.org/wiki/Villa_Uni%C3%B3n_(La_Rioja)"
     },
     {
       "id": "laguna-brava",
@@ -32,10 +168,49 @@
       "coordinates": [-68.85, -28.30],
       "foto": "/img/bermejo/laguna-brava.jpg",
       "credito": "Gedankenstuecke (Bastian Greshake Tzovaras) — CC BY-SA 4.0 (Wikimedia Commons)",
-      "descripcion": "Sistema de lagunas de altura (>4.000 m), Sitio Ramsar, con flamencos y vicuñas.",
-      "datos": ["Sitio Ramsar", "flamencos y vicuñas", "refugios históricos Mitre y Sarmiento"],
-      "fonte": "Turismo La Rioja / Ramsar",
-      "confianza": "oficial"
+      "descripcion": "Sistema de lagunas de altura (2.500–4.500 m s.n.m.), Sitio Ramsar desde 2003. Hábitat de flamencos andinos y de James, vicuñas y guanacos. Creada en 1980 por Ley Provincial 3944.",
+      "hero": [
+        { "etiqueta": "Superficie", "valor": "405.000 ha" },
+        { "etiqueta": "Estatus", "valor": "Sitio Ramsar (2003)" },
+        { "etiqueta": "Altitud", "valor": "2.500–4.500 m s.n.m." }
+      ],
+      "secciones": [
+        {
+          "titulo": "Qué ver",
+          "items": [
+            "Flamencos andinos (Phoenicoparrus andinus) y flamencos de James (Phoenicoparrus jamesi) en temporada estival",
+            "Vicuñas (Vicugna vicugna) y guanacos (Lama guanicoe)",
+            "Refugios históricos construidos entre 1863 y 1874 para comerciantes cordilleranos",
+            "Paisaje de puna con lagunas de hasta 17 km × 3 km"
+          ],
+          "fonte": "Wikipedia / Turismo La Rioja / Ramsar",
+          "confianza": "oficial"
+        },
+        {
+          "titulo": "Acceso",
+          "items": [
+            "Visita obligatoria con guía habilitado y vehículo 4×4 (cooperativa Laguna Brava Turismo)",
+            "Mejor temporada: octubre–marzo (fuera de ese período: nieve, fríos extremos, vientos)",
+            "Desde Vinchina: ~90 km hacia el noroeste por huellas de alta montaña"
+          ],
+          "fonte": "Turismo La Rioja",
+          "confianza": "oficial"
+        },
+        {
+          "titulo": "Relevancia conservación",
+          "items": [
+            "Humedal de importancia internacional — Convención Ramsar (designación 2003)",
+            "Crea en 1980 para proteger la vicuña; hoy refugio de aves de alto Andes amenazadas",
+            "Clima árido andino puneño; oscilación térmica extrema"
+          ],
+          "fonte": "Wikipedia / Ramsar / Argentina.gob.ar",
+          "confianza": "oficial"
+        }
+      ],
+      "limite": { "tipo": "area", "ref": "laguna-brava" },
+      "fonte": "Turismo La Rioja / Ramsar / Wikipedia",
+      "confianza": "oficial",
+      "url": "https://es.wikipedia.org/wiki/Reserva_provincial_Laguna_Brava"
     },
     {
       "id": "estrellas-vinchina",
@@ -45,10 +220,38 @@
       "coordinates": [-68.22, -28.78],
       "foto": "/img/bermejo/estrellas-vinchina.jpg",
       "credito": "Dalma Beatriz Rios — CC BY-SA 4.0 (Wikimedia Commons)",
-      "descripcion": "Geoglifos líticos (estrella de 12 puntas) de los Capayanes, a ~3 km de Vinchina.",
-      "datos": ["parque arqueológico desde 2019"],
-      "fonte": "Turismo La Rioja",
-      "confianza": "oficial"
+      "descripcion": "Geoglifos líticos de los Capayanes (s. X–XV): tres estrellas de cantos rodados rojos, blancos y grises, a ~3 km al noroeste de Vinchina. Protegido como parque arqueológico desde 2019.",
+      "hero": [
+        { "etiqueta": "Cultura", "valor": "Capayanes (s. X–XV)" },
+        { "etiqueta": "Estrellas", "valor": "3 (de 6 originales)" },
+        { "etiqueta": "Diámetro mayor", "valor": "12 m exterior" }
+      ],
+      "secciones": [
+        {
+          "titulo": "Qué ver",
+          "items": [
+            "Geoglifos en forma de estrella de nueve puntas construidos con cantos rodados de colores",
+            "La estrella mayor mide 10 m de diámetro interior y 12 m en el anillo exterior",
+            "Actualmente quedan 3 de las 6 estrellas originales; 2 fueron restauradas"
+          ],
+          "fonte": "La Nación / Turismo La Rioja / pueblosoriginarios.com",
+          "confianza": "declarado"
+        },
+        {
+          "titulo": "Acceso",
+          "items": [
+            "A ~3 km al noroeste de Vinchina por camino de tierra",
+            "Acceso en vehículo propio o con agencia de turismo local",
+            "Declarado Parque Arqueológico en 2019"
+          ],
+          "fonte": "Turismo La Rioja / El Independiente",
+          "confianza": "oficial"
+        }
+      ],
+      "limite": { "tipo": "radio" },
+      "fonte": "Turismo La Rioja / La Nación",
+      "confianza": "declarado",
+      "url": "https://www.lanacion.com.ar/revista-lugares/la-rioja-que-simbolizan-las-estrellas-de-piedra-que-dejaron-los-pueblos-indigenas-del-siglo-xv-nid08012026/"
     },
     {
       "id": "quebrada-troya",
@@ -58,10 +261,39 @@
       "coordinates": [-68.30, -28.70],
       "foto": "/img/bermejo/quebrada-troya.jpg",
       "credito": "Josedionisiomartinez — CC BY-SA 4.0 (Wikimedia Commons)",
-      "descripcion": "Geoformas y ruta escénica sobre el camino del valle.",
-      "datos": [],
-      "fonte": "Turismo La Rioja",
-      "confianza": "declarado"
+      "descripcion": "Recorrido de cornisa sobre el río de la Troya, con sedimentos de ~260 millones de años y geoformas únicas: la Pirámide, el Anfiteatro, el Panal de Abejas, huellas fosilizadas y árboles petrificados.",
+      "hero": [
+        { "etiqueta": "Sedimentos", "valor": "~260 Ma" },
+        { "etiqueta": "Tipo", "valor": "Ruta escénica de cornisa" },
+        { "etiqueta": "Acceso", "valor": "Con guía habilitado" }
+      ],
+      "secciones": [
+        {
+          "titulo": "Qué ver",
+          "items": [
+            "La Pirámide y el Anfiteatro: geoformas esculpidas por erosión eólica e hídrica",
+            "Panal de Abejas: formación rocosa en paredes de la quebrada",
+            "Árboles petrificados y huellas fosilizadas de animales del Triásico",
+            "Ondulitas (rizaduras de agua) fosilizadas en el lecho del cañón"
+          ],
+          "fonte": "Turismo La Rioja / SEGEMAR",
+          "confianza": "declarado"
+        },
+        {
+          "titulo": "Acceso",
+          "items": [
+            "A pocos kilómetros de Vinchina hacia el noroeste, sobre la ruta a Laguna Brava",
+            "Visita obligatoria con guía o agencia habilitada",
+            "Plegamiento geológico andino (Nasca–Sudamérica): estructura E–O visible en ladera"
+          ],
+          "fonte": "Turismo La Rioja / SEGEMAR",
+          "confianza": "declarado"
+        }
+      ],
+      "limite": { "tipo": "radio" },
+      "fonte": "Turismo La Rioja / SEGEMAR",
+      "confianza": "declarado",
+      "url": "https://turismo.larioja.gob.ar/actividades/quebrada-de-la-troya/"
     },
     {
       "id": "pircas-negras",
@@ -71,10 +303,48 @@
       "coordinates": [-69.27, -28.07],
       "foto": "/img/bermejo/pircas-negras.jpg",
       "credito": "Vrac — CC BY-SA 3.0 (Wikimedia Commons)",
-      "descripcion": "Paso fronterizo a Chile (4.164 m) por RN76; parte del Corredor Bioceánico NOA-Centro.",
-      "datos": ["4.164 m", "corredor a Atacama (Chile)", "diagnóstico POT 2015: incipiente"],
-      "fonte": "Ministerio del Interior · Centros de Frontera",
-      "confianza": "oficial"
+      "descripcion": "Paso fronterizo a 4.164 m s.n.m. sobre RN 76, conecta el departamento Vinchina (Argentina) con la Región de Atacama (Chile, comuna Tierra Amarilla). Integra el Corredor Bioceánico NOA-Centro.",
+      "hero": [
+        { "etiqueta": "Altitud", "valor": "4.164 m s.n.m." },
+        { "etiqueta": "Apertura", "valor": "1 nov.–30 abr." },
+        { "etiqueta": "Dist. desde Jagüé", "valor": "166 km" }
+      ],
+      "secciones": [
+        {
+          "titulo": "Conectividad regional",
+          "items": [
+            "Conecta Vinchina (La Rioja, AR) con Tierra Amarilla / Atacama (CL) por RN 76",
+            "Parte del Corredor Bioceánico NOA-Centro (integración regional)",
+            "Control integrado argentino-chileno en Barrancas Blancas (tecnología Wi-Fi + fibra óptica)"
+          ],
+          "fonte": "Argentina.gob.ar / Centros de Frontera",
+          "confianza": "oficial"
+        },
+        {
+          "titulo": "Acceso y condiciones",
+          "items": [
+            "Apertura estacional: 1° de noviembre al 30 de abril (cierre por condiciones climáticas extremas)",
+            "Horario operativo: 9–18 hs (sujeto a acuerdos bilaterales)",
+            "Habilitado para turismo, vehículos y motocicletas"
+          ],
+          "fonte": "Argentina.gob.ar / Centros de Frontera",
+          "confianza": "oficial"
+        },
+        {
+          "titulo": "Logística",
+          "items": [
+            "Jagüé: punto habitado más cercano en Argentina (166 km antes del paso)",
+            "Vinchina: último surtidor de combustible (~200 km antes del paso)",
+            "Diagnóstico POT 2015: desarrollo fronterizo aún incipiente"
+          ],
+          "fonte": "Argentina.gob.ar / Centros de Frontera",
+          "confianza": "oficial"
+        }
+      ],
+      "limite": { "tipo": "radio" },
+      "fonte": "Ministerio del Interior — Centros de Frontera",
+      "confianza": "oficial",
+      "url": "https://www.argentina.gob.ar/interior/centros-de-frontera/pircas-negras"
     },
     {
       "id": "talampaya",
@@ -84,22 +354,49 @@
       "coordinates": [-67.92, -29.78],
       "foto": "/img/bermejo/talampaya.jpg",
       "credito": "CecyZerda — CC BY-SA 3.0 (Wikimedia Commons)",
-      "descripcion": "Patrimonio de la Humanidad UNESCO (contexto del valle, fuera de Vinchina).",
-      "datos": ["UNESCO", "dpto. Cnel. Felipe Varela", "base: Villa Unión"],
+      "descripcion": "Patrimonio de la Humanidad UNESCO (2000). Más de 213.000 ha de cañones rojizos del Triásico en La Rioja. Con Ischigualasto forma el conjunto de fósiles continentales más completo del mundo para el período Triásico.",
+      "hero": [
+        { "etiqueta": "Superficie", "valor": ">213.000 ha" },
+        { "etiqueta": "UNESCO", "valor": "Patrimonio Mundial (2000)" },
+        { "etiqueta": "Creación PN", "valor": "1997 (Ley 24.846)" }
+      ],
+      "secciones": [
+        {
+          "titulo": "Qué ver",
+          "items": [
+            "Cañones de areniscas rojizas triásicas de hasta 150 m de altura",
+            "Fósiles de antecesores de mamíferos y dinosaurios del Triásico (más completo del mundo junto a Ischigualasto)",
+            "Pinturas rupestres y petroglifos de culturas precolombinas",
+            "Flora y fauna del Monte de Sierras y Bolsones (guanacos, cóndores, zorros)"
+          ],
+          "fonte": "APN / UNESCO WHC",
+          "confianza": "oficial"
+        },
+        {
+          "titulo": "Acceso",
+          "items": [
+            "Base de operaciones: Villa Unión (60 km al norte por RN 76)",
+            "Administración en Av. Nicolás Dávila, Villa Unión (tel. +54-3825-470356)",
+            "Circuitos guiados en vehículo y a pie dentro del parque; acceso no permitido sin guía"
+          ],
+          "fonte": "APN — argentina.gob.ar/parquesnacionales",
+          "confianza": "oficial"
+        },
+        {
+          "titulo": "Relevancia científica y cultural",
+          "items": [
+            "Inscrito como Patrimonio Mundial UNESCO en 2000 junto a Ischigualasto (San Juan)",
+            "Protegido desde 1975 como Reserva Provincial; Parque Nacional desde 1997",
+            "Ecorregión Monte de Sierras y Bolsones; escenario de formación de los Andes"
+          ],
+          "fonte": "UNESCO WHC (whc.unesco.org/es/list/966) / APN",
+          "confianza": "oficial"
+        }
+      ],
+      "limite": { "tipo": "area", "ref": "talampaya" },
       "fonte": "Administración de Parques Nacionales / UNESCO",
-      "confianza": "oficial"
-    },
-    {
-      "id": "villa-union",
-      "nombre": "Villa Unión",
-      "tipo": "localidad",
-      "eje": "turismo",
-      "coordinates": [-68.22, -29.32],
-      "foto": null,
-      "descripcion": "Cabecera de Felipe Varela y base de servicios para Talampaya (contexto del valle).",
-      "datos": ["acceso a Talampaya", "fuera de Vinchina"],
-      "fonte": "IGN",
-      "confianza": "oficial"
+      "confianza": "oficial",
+      "url": "https://www.argentina.gob.ar/parquesnacionales/centro/parque-nacional-talampaya"
     }
   ]
 }
