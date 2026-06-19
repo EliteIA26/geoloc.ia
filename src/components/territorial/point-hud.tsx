@@ -53,23 +53,42 @@ export default function PointHud({ punto, onClose }: { punto: Punto | null; onCl
               )}
             </div>
 
-            <div className="flex-1 space-y-3 overflow-y-auto p-5">
+            <div className="flex-1 space-y-4 overflow-y-auto p-5">
               <div>
                 <p className="text-[11px] uppercase tracking-wider text-primary">{EJE_LABEL[punto.eje]}</p>
                 <h2 className="text-xl font-semibold text-foreground">{punto.nombre}</h2>
               </div>
               <p className="text-sm leading-6 text-muted-foreground">{punto.descripcion}</p>
-              {punto.datos.length > 0 && (
-                <ul className="space-y-1">
-                  {punto.datos.map((d, i) => (
-                    <li key={i} className="flex gap-2 text-sm text-foreground">
-                      <span className="text-primary">·</span>
-                      <span>{d}</span>
-                    </li>
+
+              {punto.hero.length > 0 && (
+                <div className="grid grid-cols-3 gap-2">
+                  {punto.hero.map((h, i) => (
+                    <div key={i} className="rounded-lg bg-card/60 p-2 text-center">
+                      <div className="text-[10px] text-muted-foreground">{h.etiqueta}</div>
+                      <div className="text-sm font-semibold text-foreground">{h.valor}</div>
+                    </div>
                   ))}
-                </ul>
+                </div>
               )}
-              <div className="flex flex-wrap items-center gap-1 pt-1 text-[10px] text-muted-foreground">
+
+              {punto.secciones.map((s, i) => (
+                <section key={i} className="space-y-1">
+                  <h3 className="text-xs font-semibold uppercase tracking-wide text-foreground/80">{s.titulo}</h3>
+                  <ul className="space-y-0.5">
+                    {s.items.map((it, j) => (
+                      <li key={j} className="flex gap-2 text-sm text-muted-foreground"><span className="text-primary">·</span><span>{it}</span></li>
+                    ))}
+                  </ul>
+                  {(s.fonte || s.confianza) && (
+                    <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                      {s.confianza && <span className="rounded-full bg-emerald-50 px-1.5 py-0.5 text-emerald-800">{s.confianza}</span>}
+                      {s.fonte && <span>{s.fonte}</span>}
+                    </div>
+                  )}
+                </section>
+              ))}
+
+              <div className="flex flex-wrap items-center gap-1 border-t border-border pt-2 text-[10px] text-muted-foreground">
                 <span className="rounded-full bg-emerald-50 px-1.5 py-0.5 text-emerald-800">{punto.confianza}</span>
                 <span>{punto.fonte}</span>
               </div>
