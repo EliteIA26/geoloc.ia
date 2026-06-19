@@ -4,48 +4,33 @@ import { PuntosSchema } from "./bermejo-puntos";
 const sample = {
   puntos: [
     {
-      id: "laguna-brava",
-      nombre: "Reserva Provincial Laguna Brava",
-      tipo: "atractivo",
-      eje: "turismo",
-      coordinates: [-68.85, -28.3],
-      foto: "/img/bermejo/laguna-brava.jpg",
+      id: "laguna-brava", nombre: "Reserva Provincial Laguna Brava", tipo: "atractivo",
+      eje: "turismo", coordinates: [-68.85, -28.3], foto: "/img/bermejo/laguna-brava.jpg",
       credito: "Autor — CC BY-SA 4.0 (Wikimedia Commons)",
       descripcion: "Sistema de lagunas de altura.",
-      datos: ["flamencos y vicuñas", "Sitio Ramsar"],
-      fonte: "Turismo La Rioja",
-      confianza: "oficial",
+      hero: [{ etiqueta: "Altitud", valor: ">4.000 m" }, { etiqueta: "Estatus", valor: "Sitio Ramsar" }],
+      secciones: [{ titulo: "Qué ver", items: ["flamencos", "vicuñas"], fonte: "Turismo La Rioja", confianza: "oficial" }],
+      limite: { tipo: "area", ref: "laguna-brava" },
+      fonte: "Turismo La Rioja", confianza: "oficial",
     },
     {
-      id: "jague",
-      nombre: "Jagüé",
-      tipo: "localidad",
-      eje: "poblacion",
-      coordinates: [-68.5, -28.55],
-      foto: null,
-      descripcion: "Localidad del oeste del departamento.",
-      datos: [],
-      fonte: "IGN",
-      confianza: "oficial",
+      id: "vinchina", nombre: "Vinchina", tipo: "localidad", eje: "poblacion",
+      coordinates: [-68.2, -28.76], foto: null, descripcion: "Cabecera departamental.",
+      hero: [{ etiqueta: "Población depto.", valor: "2.699" }],
+      secciones: [], limite: { tipo: "departamento", ref: "Vinchina" },
+      fonte: "INDEC", confianza: "oficial",
     },
   ],
 };
 
-describe("PuntosSchema", () => {
-  it("parses points with photo and with null photo", () => {
+describe("PuntosSchema v2", () => {
+  it("parses hero/secciones/limite", () => {
     const v = PuntosSchema.parse(sample);
-    expect(v.puntos).toHaveLength(2);
-    expect(v.puntos[0].tipo).toBe("atractivo");
-    expect(v.puntos[1].foto).toBeNull();
+    expect(v.puntos[0].hero[1].valor).toBe("Sitio Ramsar");
+    expect(v.puntos[0].limite.tipo).toBe("area");
+    expect(v.puntos[1].secciones).toEqual([]);
   });
-  it("rejects an invalid tipo", () => {
-    expect(() =>
-      PuntosSchema.parse({ puntos: [{ ...sample.puntos[1], tipo: "ciudad" }] }),
-    ).toThrow();
-  });
-  it("rejects an invalid eje", () => {
-    expect(() =>
-      PuntosSchema.parse({ puntos: [{ ...sample.puntos[1], eje: "magia" }] }),
-    ).toThrow();
+  it("rejects an invalid limite.tipo", () => {
+    expect(() => PuntosSchema.parse({ puntos: [{ ...sample.puntos[1], limite: { tipo: "pais" } }] })).toThrow();
   });
 });

@@ -366,8 +366,18 @@ export default function BermejoPage() {
     };
   }, []);
 
+  const applyLimite = useCallback((p: Punto | null) => {
+    const map = mapRef.current; if (!map) return;
+    const none = "__none__";
+    if (map.getLayer("hl-area-fill")) map.setFilter("hl-area-fill", ["==", ["get", "id"], p?.limite.tipo === "area" ? (p.limite.ref ?? none) : none]);
+    if (map.getLayer("hl-area-line")) map.setFilter("hl-area-line", ["==", ["get", "id"], p?.limite.tipo === "area" ? (p.limite.ref ?? none) : none]);
+    if (map.getLayer("hl-dep-line")) map.setFilter("hl-dep-line", ["==", ["get", "nombre"], p?.limite.tipo === "departamento" ? (p.limite.ref ?? none) : none]);
+    // "radio": rely on the existing marker emphasis (no polygon).
+  }, []);
+
   const selectPunto = useCallback((p: Punto) => {
     setSelectedPunto(p);
+    applyLimite(p);
     mapRef.current?.flyTo({
       center: p.coordinates as [number, number],
       zoom: 10.5,
@@ -376,7 +386,7 @@ export default function BermejoPage() {
       duration: 1600,
       essential: true,
     });
-  }, []);
+  }, [applyLimite]);
 
   const handleMapReady = useCallback(
     (map: maplibregl.Map) => {
@@ -440,6 +450,23 @@ export default function BermejoPage() {
         },
       });
 
+      // Load limites + deptos sources and add highlight layers (hidden by default)
+      void fetch("/data/bermejo-limites.geojson").then((r) => (r.ok ? r.json() : null)).then((limites) => {
+        if (!limites || !map) return;
+        if (!map.getSource("limites-area")) map.addSource("limites-area", { type: "geojson", data: limites as maplibregl.GeoJSONSourceSpecification["data"] });
+        if (map.getSource("limites-area")) {
+          if (!map.getLayer("hl-area-fill")) map.addLayer({ id: "hl-area-fill", type: "fill", source: "limites-area", filter: ["==", ["get", "id"], "__none__"], paint: { "fill-color": "#10b981", "fill-opacity": 0.18 } });
+          if (!map.getLayer("hl-area-line")) map.addLayer({ id: "hl-area-line", type: "line", source: "limites-area", filter: ["==", ["get", "id"], "__none__"], paint: { "line-color": "#10b981", "line-width": 3 } });
+        }
+      });
+      void fetch("/data/bermejo-deptos.geojson").then((r) => (r.ok ? r.json() : null)).then((deptos) => {
+        if (!deptos || !map) return;
+        if (!map.getSource("limites-dep")) map.addSource("limites-dep", { type: "geojson", data: deptos as maplibregl.GeoJSONSourceSpecification["data"] });
+        if (map.getSource("limites-dep") && !map.getLayer("hl-dep-line")) {
+          map.addLayer({ id: "hl-dep-line", type: "line", source: "limites-dep", filter: ["==", ["get", "nombre"], "__none__"], paint: { "line-color": "#10b981", "line-width": 3, "line-dasharray": [1.5, 1] } });
+        }
+      });
+
       const clickableLayers = ["puntos-loc", "puntos-atr", "pircas-negras-corridor"] as const;
 
       for (const layerId of clickableLayers) {
@@ -482,7 +509,7 @@ export default function BermejoPage() {
         <MapLegend />
         <PointHud
           punto={selectedPunto}
-          onClose={() => setSelectedPunto(null)}
+          onClose={() => { setSelectedPunto(null); applyLimite(null); }}
         />
         {mapWarning && (
           <p
