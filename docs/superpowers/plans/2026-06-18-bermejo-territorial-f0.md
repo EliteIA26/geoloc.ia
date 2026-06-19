@@ -143,11 +143,11 @@ export type Territorial = z.infer<typeof TerritorialSchema>;
 
 export const VinchinaSatelitalSchema = z.object({
   fecha: z.string(),
-  alcance: z.string(), // Debe declarar la ventana monitoreada y "No representa todo el departamento".
+  alcance: z.literal(VINCHINA_MONITORED_SCOPE), // Contrato canónico exacto; no acepta variantes vagas.
   bbox: z.tuple([z.number(), z.number(), z.number(), z.number()]), // [west, south, east, north]
   sceneId: z.string().min(1),
   coberturaValidaPct: z.number().min(0).max(100),
-  sceneUrl: z.url({ protocol: /^https?$/ }), // URL exacta del item; el segmento final codifica sceneId.
+  sceneUrl: z.url({ protocol: /^https$/ }), // Debe igualar el endpoint canónico Planetary Computer Sentinel-2 con sceneId codificado.
   haActivaMin: z.number(),
   haActivaMax: z.number(),
   ndviMedio: z.number().optional(),
@@ -352,7 +352,7 @@ The workflow installs rasterio and the other Python dependencies, then runs the 
 
 - [ ] **Step 4: Verify the output contract**
 
-`public/data/vinchina-satelital.json` must satisfy `VinchinaSatelitalSchema`: required `fecha`, human-readable `alcance` (monitored Valle del Bermejo window intersected with Vinchina, plus the exact disclosure `No representa todo el departamento`), ordered WGS84 `bbox` as `[west, south, east, north]`, non-empty `sceneId`, `coberturaValidaPct` in `0..100`, exact HTTP(S) STAC-item `sceneUrl`, `haActivaMin`, and `haActivaMax`; optional active-zone `ndviMedio`/`ndmiMedio`, with neither mean allowed when `haActivaMax == 0`. Construct `sceneUrl` by URL-encoding `item.id` as the final item-endpoint segment. The bounds metadata may duplicate these audit fields and must state the monitored-window AOI mask and active-zone NDMI method; the overlay must remain transparent outside the Vinchina/window intersection.
+`public/data/vinchina-satelital.json` must satisfy `VinchinaSatelitalSchema`: required `fecha`, `alcance` exactly equal to `VINCHINA_MONITORED_SCOPE` (monitored Valle del Bermejo window intersected with Vinchina, plus `No representa todo el departamento`), ordered WGS84 `bbox` as `[west, south, east, north]`, non-empty `sceneId`, `coberturaValidaPct` in `0..100`, exact HTTPS Planetary Computer `sceneUrl` at `/api/stac/v1/collections/sentinel-2-l2a/items/<encoded sceneId>`, `haActivaMin`, and `haActivaMax`; optional active-zone `ndviMedio`/`ndmiMedio`, with neither mean allowed when `haActivaMax == 0`. Construct `sceneUrl` by URL-encoding `item.id` as the final item-endpoint segment; reject alternate hosts, collections, paths, query strings, and malformed percent escapes. The bounds metadata may duplicate these audit fields and must state the monitored-window AOI mask and active-zone NDMI method; the overlay must remain transparent outside the Vinchina/window intersection.
 
 ---
 

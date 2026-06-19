@@ -35,19 +35,19 @@ const LatitudeSchema = z.number().finite().min(-90).max(90);
 
 export const VINCHINA_MONITORED_SCOPE =
   "Intersección del departamento Vinchina con la ventana monitoreada del Valle del Bermejo. No representa todo el departamento.";
+const PLANETARY_COMPUTER_SENTINEL_2_ITEM_URL =
+  "https://planetarycomputer.microsoft.com/api/stac/v1/collections/sentinel-2-l2a/items";
+
+function encodeStacItemId(sceneId: string): string {
+  return encodeURIComponent(sceneId).replace(/[!'()*]/g, (character) =>
+    `%${character.charCodeAt(0).toString(16).toUpperCase()}`,
+  );
+}
 
 export const VinchinaSatelitalSchema = z
   .object({
     fecha: z.string(),
-    alcance: z
-      .string()
-      .min(1)
-      .refine(
-        (value) =>
-          value.includes("ventana monitoreada") &&
-          value.includes("No representa todo el departamento"),
-        { message: "alcance must disclose the monitored window limitation" },
-      ),
+    alcance: z.literal(VINCHINA_MONITORED_SCOPE),
     bbox: z.tuple([
       LongitudeSchema,
       LatitudeSchema,
@@ -58,7 +58,7 @@ export const VinchinaSatelitalSchema = z
       message: "sceneId must not be blank",
     }),
     coberturaValidaPct: z.number().finite().min(0).max(100),
-    sceneUrl: z.url({ protocol: /^https?$/ }),
+    sceneUrl: z.url({ protocol: /^https$/ }),
     haActivaMin: NonnegativeFiniteNumberSchema,
     haActivaMax: NonnegativeFiniteNumberSchema,
     ndviMedio: VegetationIndexSchema.optional(),
@@ -85,20 +85,8 @@ export const VinchinaSatelitalSchema = z
       });
     }
 
-    const itemPathSegment = new URL(data.sceneUrl).pathname.split("/").at(-1);
-    let decodedItemPathSegment: string | undefined;
-    try {
-      decodedItemPathSegment =
-        itemPathSegment === undefined
-          ? undefined
-          : decodeURIComponent(itemPathSegment);
-    } catch {
-      decodedItemPathSegment = undefined;
-    }
-    if (
-      decodedItemPathSegment === undefined ||
-      decodedItemPathSegment !== data.sceneId
-    ) {
+    const expectedSceneUrl = `${PLANETARY_COMPUTER_SENTINEL_2_ITEM_URL}/${encodeStacItemId(data.sceneId)}`;
+    if (data.sceneUrl !== expectedSceneUrl) {
       context.addIssue({
         code: "custom",
         message: "sceneUrl must identify the exact sceneId",

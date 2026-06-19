@@ -10,7 +10,7 @@ import {
 
 const satelliteAudit = {
   alcance:
-    "Intersección del departamento Vinchina con la ventana monitoreada del Valle del Bermejo. No representa todo el departamento.",
+    "Intersección del departamento Vinchina con la ventana monitoreada del Valle del Bermejo. No representa todo el departamento." as const,
   bbox: [-68.4, -28.9, -68.05, -28.6] as [number, number, number, number],
   sceneId: "S2A_20260524_VINCHINA",
   coberturaValidaPct: 97.3,
@@ -90,6 +90,15 @@ describe("VinchinaSatelitalSchema", () => {
   });
 
   it.each([
+    "Ventana monitoreada. No representa todo el departamento.",
+    "Intersección aproximada del departamento Vinchina con la ventana monitoreada del Valle del Bermejo. No representa todo el departamento.",
+  ])("rejects a vague or altered monitored scope: %s", (alcance) => {
+    expect(
+      VinchinaSatelitalSchema.safeParse(satellitePayload({ alcance })).success,
+    ).toBe(false);
+  });
+
+  it.each([
     { haActivaMin: -1, haActivaMax: 10 },
     { haActivaMin: 10, haActivaMax: -1 },
     { haActivaMin: 11, haActivaMax: 10 },
@@ -155,20 +164,35 @@ describe("VinchinaSatelitalSchema", () => {
     },
   );
 
-  it("requires the exact HTTP STAC item URL for the non-empty scene ID", () => {
+  it("accepts the canonical Planetary Computer item URL with an encoded scene ID", () => {
     expect(
       VinchinaSatelitalSchema.safeParse(
-        satellitePayload({ sceneUrl: "https://example.org/items/another-scene" }),
+        satellitePayload({
+          sceneId: "scene / exact id",
+          sceneUrl:
+            "https://planetarycomputer.microsoft.com/api/stac/v1/collections/sentinel-2-l2a/items/scene%20%2F%20exact%20id",
+        }),
       ).success,
+    ).toBe(true);
+  });
+
+  it.each([
+    "http://planetarycomputer.microsoft.com/api/stac/v1/collections/sentinel-2-l2a/items/S2A_20260524_VINCHINA",
+    "https://example.org/api/stac/v1/collections/sentinel-2-l2a/items/S2A_20260524_VINCHINA",
+    "https://planetarycomputer.microsoft.com/api/stac/v1/collections/landsat-c2-l2/items/S2A_20260524_VINCHINA",
+    "https://planetarycomputer.microsoft.com/api/stac/v1/collections/sentinel-2-l2a/search/S2A_20260524_VINCHINA",
+    "https://planetarycomputer.microsoft.com/api/stac/v1/collections/sentinel-2-l2a/items/S2A_20260524_VINCHINA?item=S2A_20260524_VINCHINA",
+    "https://planetarycomputer.microsoft.com/api/stac/v1/collections/sentinel-2-l2a/items/%",
+  ])("rejects a non-canonical or malformed STAC item URL: %s", (sceneUrl) => {
+    expect(
+      VinchinaSatelitalSchema.safeParse(satellitePayload({ sceneUrl })).success,
     ).toBe(false);
+  });
+
+  it("requires a non-empty scene ID", () => {
     expect(
       VinchinaSatelitalSchema.safeParse(
         satellitePayload({ sceneId: "   " }),
-      ).success,
-    ).toBe(false);
-    expect(
-      VinchinaSatelitalSchema.safeParse(
-        satellitePayload({ sceneUrl: "https://example.org/items/%" }),
       ).success,
     ).toBe(false);
   });
