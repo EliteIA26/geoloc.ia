@@ -76,6 +76,34 @@ describe("TerritorialSchema", () => {
       }),
     ).toThrow();
   });
+
+  it("accepts optional turismo and potencial chapters", () => {
+    const base = { depto: "Vinchina", contexto: [], satelite: [], chile: [] };
+    expect(TerritorialSchema.parse(base).turismo).toBeUndefined();
+    const withChapters = TerritorialSchema.parse({
+      ...base,
+      turismo: [
+        {
+          etiqueta: "Laguna Brava",
+          valor: "lagunas de altura",
+          fonte: "Turismo La Rioja",
+          fecha: "2026",
+          confianza: "oficial",
+        },
+      ],
+      potencial: [
+        {
+          etiqueta: "Turismo",
+          valor: "alto",
+          fonte: "POT 2015",
+          fecha: "2015",
+          confianza: "oficial",
+        },
+      ],
+    });
+    expect(withChapters.turismo).toHaveLength(1);
+    expect(withChapters.potencial?.[0].confianza).toBe("oficial");
+  });
 });
 
 describe("VinchinaSatelitalSchema", () => {

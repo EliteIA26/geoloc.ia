@@ -24,6 +24,8 @@ export const TerritorialSchema = z.object({
   resumen: z.string().optional(),
   contexto: z.array(IndicadorSchema),
   satelite: z.array(IndicadorSchema),
+  turismo: z.array(IndicadorSchema).optional(),
+  potencial: z.array(IndicadorSchema).optional(),
   chile: z.array(IndicadorSchema),
 });
 export type Territorial = z.infer<typeof TerritorialSchema>;

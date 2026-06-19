@@ -287,6 +287,16 @@ function TerritorialBriefing({
       )}
       <BriefingChapter
         numero={3}
+        titulo="Turismo (atractivos)"
+        indicadores={territorial.turismo ?? []}
+      />
+      <BriefingChapter
+        numero={4}
+        titulo="Potencial productivo"
+        indicadores={territorial.potencial ?? []}
+      />
+      <BriefingChapter
+        numero={5}
         titulo="Logística y conexión con Chile"
         indicadores={territorial.chile}
       />
