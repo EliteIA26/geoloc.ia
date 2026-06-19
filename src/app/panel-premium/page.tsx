@@ -11,7 +11,10 @@ import ProducerView from "@/components/premium/producer-view";
 import MapLegend from "@/components/premium/map-legend";
 import RadialDepartmentView from "@/components/premium/radial-department-view";
 import InsightHero, { type HeroChip } from "@/components/premium/insight-hero";
-import { AnimatePresence } from "framer-motion";
+import LiveTicker from "@/components/premium/live-ticker";
+import RadarScan from "@/components/premium/radar-scan";
+import { motion, AnimatePresence } from "framer-motion";
+import { Eye, EyeOff } from "lucide-react";
 import { ndviToColor, ndwiToColor } from "@/lib/colors";
 import { fetchDepartamentos, type DepartamentoProps } from "@/lib/departamentos";
 import { fetchJson, SeriesSchema } from "@/lib/data";
@@ -103,7 +106,8 @@ function getBounds(geometry: GeoJSON.Geometry) {
 
 export default function PanelPage() {
   const mapRef = useRef<maplibregl.Map | null>(null);
-  const orbitState = useRef({ isDragging: false, startX: 0, startY: 0, startBearing: 0, startPitch: 0 });
+  const featuresRef = useRef<GeoJSON.Feature[]>([]);
+  const [hoverInfo, setHoverInfo] = useState<{ x: number, y: number, name: string, status: string } | null>(null);
   const [layer, setLayer] = useState<LayerKey>("ndvi");
   const [captura, setCaptura] = useState<string | null>(null);
   const [view, setView] = useState<"gestion" | "productor">("gestion");
@@ -114,6 +118,8 @@ export default function PanelPage() {
   const [resumenEstado, setResumenEstado] = useState<"loading" | "ok" | "error">("loading");
   const [sat, setSat] = useState<Satelital | null>(null);
   const [prov, setProv] = useState<ProvinciaNdvi | null>(null);
+  const [zenMode, setZenMode] = useState(false);
+  const [radarTrigger, setRadarTrigger] = useState(0);
 
   useEffect(() => {
     fetchDepartamentos().then(setDeps).catch(() => setDeps([]));
@@ -155,56 +161,7 @@ export default function PanelPage() {
     ? deps.find((d) => d.nombre === selected) ?? null
     : null;
 
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map) return;
-    if (!selected) {
-      // Remove gravity constraints when clearing
-      map.setMaxBounds(null);
-      map.dragPan.enable();
-    } else {
-      map.dragPan.disable(); // Disable normal panning so we can use left-click for orbiting
-    }
 
-    const onMouseDown = (e: maplibregl.MapMouseEvent) => {
-      if (!selected || e.originalEvent.button !== 0) return;
-      orbitState.current = {
-        isDragging: true,
-        startX: e.originalEvent.clientX,
-        startY: e.originalEvent.clientY,
-        startBearing: map.getBearing(),
-        startPitch: map.getPitch()
-      };
-    };
-
-    const onMouseMove = (e: maplibregl.MapMouseEvent) => {
-      if (!orbitState.current.isDragging || !selected) return;
-      const dx = e.originalEvent.clientX - orbitState.current.startX;
-      const dy = e.originalEvent.clientY - orbitState.current.startY;
-      
-      map.setBearing(orbitState.current.startBearing - dx * 0.4);
-      let newPitch = orbitState.current.startPitch - dy * 0.4;
-      if (newPitch > 85) newPitch = 85;
-      if (newPitch < 0) newPitch = 0;
-      map.setPitch(newPitch);
-    };
-
-    const onMouseUp = () => {
-      orbitState.current.isDragging = false;
-    };
-
-    map.on('mousedown', onMouseDown);
-    map.on('mousemove', onMouseMove);
-    map.on('mouseup', onMouseUp);
-    window.addEventListener('mouseup', onMouseUp);
-
-    return () => {
-      map.off('mousedown', onMouseDown);
-      map.off('mousemove', onMouseMove);
-      map.off('mouseup', onMouseUp);
-      window.removeEventListener('mouseup', onMouseUp);
-    };
-  }, [selected]);
 
   // Keep the map highlight layer in sync with the React selection.
   function applyHighlight(map: maplibregl.Map, nombre: string | null) {
@@ -224,6 +181,7 @@ export default function PanelPage() {
   const handleReady = useCallback(async (map: maplibregl.Map) => {
     mapRef.current = map;
     const gj = (await fetch("/data/departamentos.geojson").then((r) => r.json())) as GeoJSONCollection;
+    featuresRef.current = gj.features as unknown as GeoJSON.Feature[];
     for (const f of gj.features) {
       f.properties.colorNdvi = ndviToColor(f.properties.ndvi);
       f.properties.colorNdwi = ndwiToColor(f.properties.ndwi);
@@ -298,36 +256,25 @@ export default function PanelPage() {
         const nombre = feature?.properties?.nombre;
         if (typeof nombre === "string") {
           setSelected(nombre);
-          if (feature?.geometry) {
-            const bounds = getBounds(feature.geometry);
-
-            // Add slight margin to bounds so the user can see the edges
-            const paddedBounds = new maplibregl.LngLatBounds(
-              bounds.getSouthWest(), bounds.getNorthEast()
-            );
-            
-            map.fitBounds(bounds, {
-              padding: { top: 150, bottom: 150, left: 150, right: 150 }, // perfectly centered
-              pitch: 65,
-              bearing: Math.random() * 40 - 20, // dramatic random 3D tilt
-              duration: 2000,
-              essential: true
-            });
-            
-            // Lock map panning to the department's boundaries
-            setTimeout(() => {
-               if (mapRef.current && nombre === selected) {
-                 mapRef.current.setMaxBounds(paddedBounds);
-               }
-            }, 2000);
-          }
+          setRadarTrigger(Date.now()); // Trigger radar on select
         }
       });
-      map.on("mouseenter", id, () => {
+      map.on("mousemove", id, (e) => {
         map.getCanvas().style.cursor = "pointer";
+        const feature = e.features?.[0];
+        if (feature?.properties?.nombre) {
+          const statusVal = feature.properties.ndvi !== undefined ? feature.properties.ndvi : 0;
+          setHoverInfo({ 
+            x: e.point.x, 
+            y: e.point.y, 
+            name: feature.properties.nombre,
+            status: statusVal > 0.5 ? "Saludable" : statusVal > 0.3 ? "Atención" : "Crítico"
+          });
+        }
       });
       map.on("mouseleave", id, () => {
         map.getCanvas().style.cursor = "";
+        setHoverInfo(null);
       });
     }
 
@@ -363,6 +310,24 @@ export default function PanelPage() {
       if (!selected) {
         // Reset 3D view
         map.flyTo({ center: [-67.2, -29.4], zoom: 6.3, pitch: 0, bearing: 0, duration: 1500 });
+      } else {
+        // Find the feature to get bounds and zoom
+        const feature = featuresRef.current.find(f => f.properties?.nombre === selected);
+        if (feature?.geometry) {
+          const bounds = getBounds(feature.geometry);
+
+          map.fitBounds(bounds, {
+            padding: 150, // Espacio base
+            maxZoom: 8, // Nivel de zoom significativamente más alejado
+            pitch: 65,
+            bearing: Math.random() * 40 - 20,
+            duration: 2500, // Un poco más lento para más fluidez
+            essential: true
+          });
+          
+          // Eliminamos el setMaxBounds aquí para evitar el "zoom seco" (snap) 
+          // cuando MapLibre intenta forzar la cámara dentro de la caja.
+        }
       }
     }
   }, [selected]);
@@ -371,9 +336,6 @@ export default function PanelPage() {
     setLayer(k);
     const map = mapRef.current;
     if (!map) return;
-    // NDVI and NDWI both render as fluid province rasters (larioja-ndvi / larioja-ndwi).
-    // The discrete dep-ndwi fill is only a fallback when the NDWI raster isn't generated yet.
-    // The near-transparent dep-ndvi click layer stays visible always for selection.
     const hasNdwiRaster = !!map.getLayer("larioja-ndwi");
     if (map.getLayer("larioja-ndvi")) {
       map.setLayoutProperty("larioja-ndvi", "visibility", k === "ndvi" ? "visible" : "none");
@@ -397,11 +359,34 @@ export default function PanelPage() {
             <MapShell center={[-67.2, -29.4]} zoom={6.3} onReady={handleReady} />
           </div>
 
-          {/* Floating UI Elements over the map */}
-          <div className="absolute inset-0 z-10 pointer-events-none flex flex-col justify-between p-4">
-            
+          <AnimatePresence>
+          {hoverInfo && !selected && (
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+              className="pointer-events-none absolute z-50 px-3 py-2 rounded-xl glass-panel shadow-2xl backdrop-blur-xl bg-black/60 border border-white/10"
+              style={{ left: hoverInfo.x + 15, top: hoverInfo.y + 15 }}
+            >
+              <p className="text-sm font-bold text-white tracking-tight">{hoverInfo.name}</p>
+              <p className={`text-[10px] font-semibold uppercase tracking-wider ${hoverInfo.status === 'Saludable' ? 'text-emerald-400' : hoverInfo.status === 'Atención' ? 'text-amber-400' : 'text-red-400'}`}>
+                {hoverInfo.status}
+              </p>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <RadarScan trigger={radarTrigger} />
+
+        {/* Floating Top UI (Sidebar & Controls) */}
+        <div className="absolute inset-0 z-10 pointer-events-none flex flex-col justify-between">
+          
+          <LiveTicker />
+
+          <div className="p-4 flex flex-col justify-between h-full">
             {/* Top Bar - Floating Header */}
-            <header className={`pointer-events-auto flex items-center justify-between gap-4 rounded-2xl glass-panel shadow-2xl px-5 py-3 mb-4 backdrop-blur-xl bg-card/60 transition-all duration-700 ${selected ? 'opacity-20 blur-sm pointer-events-none' : ''}`}>
+            <header className={`pointer-events-auto flex items-center justify-between gap-4 rounded-2xl glass-panel shadow-2xl px-5 py-3 mb-4 backdrop-blur-3xl bg-card/80 border border-white/10 transition-all duration-700 ${selected || zenMode ? 'opacity-0 blur-sm pointer-events-none translate-y-[-20px]' : ''}`}>
               <div className="min-w-0">
                 <h1 className="flex items-center gap-2 truncate text-lg font-semibold tracking-tight text-foreground">
                   <span className="inline-block h-4 w-1 rounded-full bg-primary" aria-hidden />
@@ -439,11 +424,25 @@ export default function PanelPage() {
               </div>
             </header>
 
+            {/* Floating Controls at Bottom */}
+            <AnimatePresence>
+            </AnimatePresence>
+
+            {/* Zen Mode Toggle */}
+            {!selected && (
+              <button 
+                onClick={() => setZenMode(!zenMode)}
+                className="absolute bottom-6 right-6 z-50 pointer-events-auto p-3 rounded-full bg-black/60 border border-white/20 text-white shadow-2xl backdrop-blur-md hover:bg-black/80 transition-colors"
+                title={zenMode ? "Desactivar Modo Zen" : "Activar Modo Zen"}
+              >
+                {zenMode ? <EyeOff className="w-5 h-5 text-gray-400" /> : <Eye className="w-5 h-5 text-primary" />}
+              </button>
+            )}
+
             {/* Main Content Area: Map Controls (Left) and Bento Sidebar (Right) */}
-            <div className="flex flex-1 items-start justify-between min-h-0">
-              
-              {/* Left Controls */}
-              <div className={`pointer-events-auto flex flex-col gap-4 transition-all duration-700 ${selected ? 'opacity-20 blur-sm pointer-events-none' : ''}`}>
+            <div className="flex flex-1 items-start justify-between min-h-0 relative pointer-events-none w-full">
+              {/* Left Sidebar */}
+              <div className={`pointer-events-auto flex flex-col gap-4 w-72 shrink-0 transition-all duration-700 ${selected || zenMode ? 'opacity-0 blur-sm pointer-events-none translate-x-[-20px]' : ''}`}>
                 <div className="w-fit glass-panel p-1 rounded-xl shadow-xl bg-card/60 backdrop-blur-xl">
                   <LayerToggle active={layer} onChange={handleToggle} />
                 </div>
@@ -549,6 +548,7 @@ export default function PanelPage() {
               )}
             </AnimatePresence>
           </div>
+        </div>
         </>
       ) : (
         <div className="flex-1 overflow-hidden pointer-events-auto z-10 relative bg-background">

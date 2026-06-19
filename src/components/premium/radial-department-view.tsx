@@ -1,12 +1,55 @@
 "use client";
 
-import { motion, type Variants } from "framer-motion";
+import { useEffect } from "react";
+import { motion, type Variants, useMotionValue, useTransform, useSpring } from "framer-motion";
 import type { DepartamentoProps } from "@/lib/departamentos";
 import { vegetationStatus, vegetationSentence, vegetationDotClass } from "@/lib/vegetation";
 import { buildSparklinePath } from "@/lib/sparkline";
 import type { ProvinciaNdvi, Satelital } from "@/lib/satelital";
 import { MapPin, Leaf, Droplets, Calendar } from "lucide-react";
 import TrendBadge from "@/components/premium/trend-badge";
+import DepartmentAiChat from "@/components/premium/department-ai-chat";
+
+function CountUpNumber({ value, decimals = 2, className }: { value: number, decimals?: number, className?: string }) {
+  const spring = useSpring(0, { stiffness: 50, damping: 20 });
+  const display = useTransform(spring, (current) => current.toFixed(decimals));
+
+  useEffect(() => {
+    spring.set(value);
+  }, [spring, value]);
+
+  return <motion.span className={className}>{display}</motion.span>;
+}
+
+function TiltCard({ children, className }: { children: React.ReactNode, className?: string }) {
+  const x = useMotionValue(0);
+  const y = useMotionValue(0);
+
+  const rotateX = useTransform(y, [-100, 100], [10, -10]);
+  const rotateY = useTransform(x, [-100, 100], [-10, 10]);
+
+  function handleMouse(event: React.MouseEvent<HTMLDivElement, MouseEvent>) {
+    const rect = event.currentTarget.getBoundingClientRect();
+    x.set(event.clientX - rect.left - rect.width / 2);
+    y.set(event.clientY - rect.top - rect.height / 2);
+  }
+
+  function handleMouseLeave() {
+    x.set(0);
+    y.set(0);
+  }
+
+  return (
+    <motion.div
+      style={{ rotateX, rotateY, perspective: 1000 }}
+      onMouseMove={handleMouse}
+      onMouseLeave={handleMouseLeave}
+      className={className}
+    >
+      {children}
+    </motion.div>
+  );
+}
 
 export default function RadialDepartmentView({
   dep,
@@ -34,7 +77,7 @@ export default function RadialDepartmentView({
     visible: { 
       opacity: 1, 
       y: 0,
-      transition: { duration: 0.6, delay: 0.8, ease: "easeOut" } // appear near end of line animation
+      transition: { duration: 0.6, ease: "easeOut" }
     },
     exit: {
       opacity: 0,
@@ -46,7 +89,7 @@ export default function RadialDepartmentView({
 
   const containerVariants: Variants = {
     hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { duration: 0.8 } },
+    visible: { opacity: 1, transition: { duration: 0.8, staggerChildren: 0.15, delayChildren: 0.5 } },
     exit: { opacity: 0, transition: { duration: 0.6, delay: 0.4 } }
   };
 
@@ -65,10 +108,10 @@ export default function RadialDepartmentView({
         className="absolute top-[10%] left-[8%] w-[320px] pointer-events-auto"
         variants={cardVariants} initial="hidden" animate="visible" exit="exit"
       >
-        <div className="glass-panel p-5 rounded-2xl border-white/10 shadow-[0_0_40px_rgba(0,0,0,0.6)] backdrop-blur-3xl bg-card/80">
+        <TiltCard className="glass-panel p-5 rounded-2xl border-white/10 shadow-[0_0_40px_rgba(0,0,0,0.6)] backdrop-blur-3xl bg-card/80">
           <div className="flex items-center gap-2 text-muted-foreground mb-1">
             <MapPin className="w-4 h-4 text-primary" />
-            <span className="text-sm uppercase tracking-wider font-semibold">Departamento alvo</span>
+            <span className="text-sm uppercase tracking-wider font-semibold">Departamento Seleccionado</span>
           </div>
           <h2 className="text-3xl font-bold tracking-tight text-foreground mb-4">{dep.nombre}</h2>
           
@@ -83,7 +126,7 @@ export default function RadialDepartmentView({
               </p>
             </div>
           </div>
-        </div>
+        </TiltCard>
       </motion.div>
 
       {/* Floating Cards - Top Right */}
@@ -91,7 +134,7 @@ export default function RadialDepartmentView({
         className="absolute top-[10%] right-[8%] w-[280px] pointer-events-auto"
         variants={cardVariants} initial="hidden" animate="visible" exit="exit"
       >
-        <div className="glass-panel p-6 rounded-2xl border-emerald-500/20 shadow-[0_0_40px_rgba(16,185,129,0.15)] relative overflow-hidden group backdrop-blur-3xl bg-card/80">
+        <TiltCard className="glass-panel p-6 rounded-2xl border-emerald-500/20 shadow-[0_0_40px_rgba(16,185,129,0.15)] relative overflow-hidden group backdrop-blur-3xl bg-card/80">
           <div className="absolute -right-4 -top-4 opacity-10">
             <Leaf className="w-24 h-24 text-emerald-400" />
           </div>
@@ -99,11 +142,11 @@ export default function RadialDepartmentView({
             <Leaf className="w-4 h-4" />
             <span className="text-xs font-semibold uppercase tracking-wider">Índice Vegetação (NDVI)</span>
           </div>
-          <span className="text-5xl font-bold text-foreground tabular-nums tracking-tighter block mb-3 drop-shadow-md">{ndvi.toFixed(2)}</span>
+          <CountUpNumber value={ndvi} decimals={2} className="text-5xl font-bold text-foreground tabular-nums tracking-tighter block mb-3 drop-shadow-md" />
           <div className="w-full bg-black/40 h-1.5 rounded-full overflow-hidden">
-            <div className="bg-emerald-500 h-full rounded-full shadow-[0_0_8px_rgba(16,185,129,0.8)]" style={{ width: `${Math.max(0, ndvi * 100)}%` }} />
+            <motion.div initial={{width: 0}} animate={{width: `${Math.max(0, ndvi * 100)}%`}} transition={{duration: 1, delay: 0.8, ease: "easeOut"}} className="bg-emerald-500 h-full rounded-full shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
           </div>
-        </div>
+        </TiltCard>
       </motion.div>
 
       {/* Floating Cards - Bottom Left */}
@@ -111,7 +154,7 @@ export default function RadialDepartmentView({
         className="absolute bottom-[10%] left-[8%] w-[280px] pointer-events-auto"
         variants={cardVariants} initial="hidden" animate="visible" exit="exit"
       >
-        <div className="glass-panel p-6 rounded-2xl border-blue-500/20 shadow-[0_0_40px_rgba(59,130,246,0.15)] relative overflow-hidden group backdrop-blur-3xl bg-card/80">
+        <TiltCard className="glass-panel p-6 rounded-2xl border-blue-500/20 shadow-[0_0_40px_rgba(59,130,246,0.15)] relative overflow-hidden group backdrop-blur-3xl bg-card/80">
           <div className="absolute -right-4 -top-4 opacity-10">
             <Droplets className="w-24 h-24 text-blue-400" />
           </div>
@@ -119,33 +162,41 @@ export default function RadialDepartmentView({
             <Droplets className="w-4 h-4" />
             <span className="text-xs font-semibold uppercase tracking-wider">Estresse Hídrico (NDWI)</span>
           </div>
-          <span className="text-5xl font-bold text-foreground tabular-nums tracking-tighter block mb-3 drop-shadow-md">{dep.ndwi.toFixed(2)}</span>
+          <CountUpNumber value={dep.ndwi} decimals={2} className="text-5xl font-bold text-foreground tabular-nums tracking-tighter block mb-3 drop-shadow-md" />
           <div className="w-full bg-black/40 h-1.5 rounded-full overflow-hidden">
-            <div className="bg-blue-500 h-full rounded-full shadow-[0_0_8px_rgba(59,130,246,0.8)]" style={{ width: `${Math.max(0, (dep.ndwi + 1) * 50)}%` }} />
+            <motion.div initial={{width: 0}} animate={{width: `${Math.max(0, (dep.ndwi + 1) * 50)}%`}} transition={{duration: 1, delay: 0.8, ease: "easeOut"}} className="bg-blue-500 h-full rounded-full shadow-[0_0_8px_rgba(59,130,246,0.8)]" />
           </div>
-        </div>
+        </TiltCard>
       </motion.div>
 
       {/* Floating Cards - Bottom Right */}
       <motion.div 
-        className="absolute bottom-[10%] right-[8%] w-[320px] pointer-events-auto flex flex-col gap-4"
+        className="absolute bottom-[10%] right-[8%] w-[280px] pointer-events-auto flex flex-col gap-4"
         variants={cardVariants} initial="hidden" animate="visible" exit="exit"
       >
         {showSparkline && (
-          <div className="glass-panel p-5 rounded-2xl border-white/10 shadow-[0_0_40px_rgba(0,0,0,0.6)] backdrop-blur-3xl bg-card/80">
+          <TiltCard className="glass-panel p-5 rounded-2xl border-white/10 shadow-[0_0_40px_rgba(0,0,0,0.6)] backdrop-blur-3xl bg-card/80">
             <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-              <Calendar className="w-3 h-3" /> Evolução Histórica
+              <Calendar className="w-3 h-3" /> Evolución Histórica
             </p>
             <svg viewBox="0 0 120 30" className="w-full h-12 mt-2" aria-hidden>
               <path d={buildSparklinePath(serie, 120, 30)} fill="none" stroke="var(--primary)" strokeWidth={2} className="drop-shadow-[0_0_5px_rgba(16,185,129,0.8)]" />
             </svg>
-          </div>
+          </TiltCard>
         )}
         {sat?.ndviTrend && dep.nombre === "Arauco" && (
-          <div className="glass-panel rounded-2xl p-1 bg-card/90 shadow-xl border-white/5">
+          <TiltCard className="glass-panel rounded-2xl p-1 bg-card/90 shadow-xl border-white/5">
              <TrendBadge actual={sat.ndviTrend.actual} anterior={sat.ndviTrend.anterior} />
-          </div>
+          </TiltCard>
         )}
+      </motion.div>
+
+      {/* Floating AI Chat - Right Side Center */}
+      <motion.div 
+        className="absolute top-[35%] bottom-[35%] right-[8%] w-[280px] pointer-events-auto flex flex-col"
+        variants={cardVariants} initial="hidden" animate="visible" exit="exit"
+      >
+        <DepartmentAiChat departmentName={dep.nombre} />
       </motion.div>
 
       {/* Central Floating Button to Clear */}
@@ -154,7 +205,7 @@ export default function RadialDepartmentView({
         onClick={onClear}
         className="absolute bottom-10 left-1/2 -translate-x-1/2 rounded-full bg-black/50 backdrop-blur-md border border-white/20 px-8 py-3 text-white font-medium hover:bg-white hover:text-black transition-colors shadow-2xl pointer-events-auto flex items-center gap-2"
       >
-        Retornar à Visão Global
+        Volver a la Vista Global
       </motion.button>
     </motion.div>
   );
