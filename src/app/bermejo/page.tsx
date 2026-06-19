@@ -1,11 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import maplibregl from "maplibre-gl";
 import type { GeoJSON } from "geojson";
 import MapShell from "@/components/map-shell";
 import ResizableAside from "@/components/resizable-aside";
 import BriefingChapter from "@/components/territorial/briefing-chapter";
+import PointHud from "@/components/territorial/point-hud";
+import MapLegend from "@/components/territorial/map-legend";
+import PointList from "@/components/territorial/point-list";
 import {
   composeVinchinaSatelliteIndicators,
   fetchTerritorial,
@@ -21,6 +24,7 @@ import {
   type BermejoLayerId,
   type NdviAsset,
 } from "@/lib/bermejo-map";
+import { fetchPuntos, type Punto } from "@/lib/bermejo-puntos";
 
 type LoadState<T> =
   | { status: "loading" }
@@ -273,12 +277,16 @@ function TerritorialBriefing({
         numero={1}
         titulo="Contexto socio-productivo"
         indicadores={territorial.contexto}
+        collapsible
+        defaultOpen={false}
       />
       {satelliteIndicators.length > 0 ? (
         <BriefingChapter
           numero={2}
           titulo="Vegetación activa observada (satélite)"
           indicadores={satelliteIndicators}
+          collapsible
+          defaultOpen={false}
         />
       ) : satellite.status === "loading" ? (
         <EmptySatelliteChapter message="Cargando observación satelital…" />
@@ -289,16 +297,22 @@ function TerritorialBriefing({
         numero={3}
         titulo="Turismo (atractivos)"
         indicadores={territorial.turismo ?? []}
+        collapsible
+        defaultOpen={false}
       />
       <BriefingChapter
         numero={4}
         titulo="Potencial productivo"
         indicadores={territorial.potencial ?? []}
+        collapsible
+        defaultOpen={false}
       />
       <BriefingChapter
         numero={5}
         titulo="Logística y conexión con Chile"
         indicadores={territorial.chile}
+        collapsible
+        defaultOpen={false}
       />
     </div>
   );
@@ -312,6 +326,9 @@ export default function BermejoPage() {
     status: "loading",
   });
   const [mapWarning, setMapWarning] = useState<string | null>(null);
+  const [puntos, setPuntos] = useState<Punto[]>([]);
+  const [selectedPunto, setSelectedPunto] = useState<Punto | null>(null);
+  const mapRef = useRef<maplibregl.Map | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -340,23 +357,116 @@ export default function BermejoPage() {
       },
     );
 
+    void fetchPuntos().then((data) => {
+      if (active) setPuntos(data);
+    });
+
     return () => {
       active = false;
     };
   }, []);
 
-  const handleMapReady = useCallback((map: maplibregl.Map) => {
-    const controller = new AbortController();
-    map.once("remove", () => controller.abort());
-    setMapWarning(null);
-    void configureTerritorialMap(map, controller.signal, () => {
-      if (!controller.signal.aborted) {
-        setMapWarning(
-          "Algunas capas vectoriales no pudieron cargarse. El resto del mapa sigue disponible.",
-        );
-      }
+  const selectPunto = useCallback((p: Punto) => {
+    setSelectedPunto(p);
+    mapRef.current?.flyTo({
+      center: p.coordinates as [number, number],
+      zoom: 10.5,
+      pitch: 55,
+      bearing: 12,
+      duration: 1600,
+      essential: true,
     });
   }, []);
+
+  const handleMapReady = useCallback(
+    (map: maplibregl.Map) => {
+      mapRef.current = map;
+      const controller = new AbortController();
+      map.once("remove", () => controller.abort());
+      setMapWarning(null);
+      void configureTerritorialMap(map, controller.signal, () => {
+        if (!controller.signal.aborted) {
+          setMapWarning(
+            "Algunas capas vectoriales no pudieron cargarse. El resto del mapa sigue disponible.",
+          );
+        }
+      });
+    },
+    [],
+  );
+
+  // Add puntos GeoJSON source + layers + click handlers once map + points are ready
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || puntos.length === 0) return;
+
+    const add = () => {
+      if (map.getSource("puntos")) return;
+
+      const fc: GeoJSON = {
+        type: "FeatureCollection",
+        features: puntos.map((p) => ({
+          type: "Feature",
+          properties: { id: p.id, tipo: p.tipo, nombre: p.nombre },
+          geometry: { type: "Point", coordinates: p.coordinates },
+        })),
+      };
+
+      map.addSource("puntos", { type: "geojson", data: fc });
+
+      map.addLayer({
+        id: "puntos-loc",
+        type: "circle",
+        source: "puntos",
+        filter: ["==", ["get", "tipo"], "localidad"],
+        paint: {
+          "circle-radius": 6,
+          "circle-color": "#38bdf8",
+          "circle-stroke-color": "#fff",
+          "circle-stroke-width": 2,
+        },
+      });
+
+      map.addLayer({
+        id: "puntos-atr",
+        type: "circle",
+        source: "puntos",
+        filter: ["==", ["get", "tipo"], "atractivo"],
+        paint: {
+          "circle-radius": 7,
+          "circle-color": "#f59e0b",
+          "circle-stroke-color": "#fff",
+          "circle-stroke-width": 2,
+        },
+      });
+
+      const clickableLayers = ["puntos-loc", "puntos-atr", "pircas-negras-corridor"] as const;
+
+      for (const layerId of clickableLayers) {
+        map.on("click", layerId, (e) => {
+          const fid =
+            layerId === "pircas-negras-corridor"
+              ? "pircas-negras"
+              : (e.features?.[0]?.properties?.id as string | undefined);
+          if (!fid) return;
+          const p = puntos.find((x) => x.id === fid);
+          if (p) selectPunto(p);
+        });
+        map.on("mouseenter", layerId, () => {
+          map.getCanvas().style.cursor = "pointer";
+        });
+        map.on("mouseleave", layerId, () => {
+          map.getCanvas().style.cursor = "";
+        });
+      }
+    };
+
+    if (map.isStyleLoaded()) {
+      add();
+    } else {
+      map.once("idle", add);
+    }
+  }, [puntos, selectPunto]);
 
   return (
     <main className="flex h-dvh w-full flex-col overflow-hidden bg-background md:flex-row">
@@ -369,6 +479,11 @@ export default function BermejoPage() {
         <div className="pointer-events-none absolute left-4 top-4 z-10 rounded-full border border-white/15 bg-black/65 px-4 py-2 text-xs font-medium tracking-wide text-white shadow-lg backdrop-blur-md">
           Inteligencia territorial · Valle del Bermejo
         </div>
+        <MapLegend />
+        <PointHud
+          punto={selectedPunto}
+          onClose={() => setSelectedPunto(null)}
+        />
         {mapWarning && (
           <p
             className="absolute bottom-3 left-3 right-3 z-10 max-w-md rounded-lg border border-amber-300/25 bg-black/75 px-3 py-2 text-xs text-amber-100 shadow-lg backdrop-blur-md"
@@ -402,6 +517,35 @@ export default function BermejoPage() {
           )}
         </header>
 
+        {/* Hero stat cards */}
+        <div className="grid grid-cols-2 gap-2">
+          <div className="rounded-xl border border-[var(--border)] bg-card/60 p-3">
+            <div className="text-[11px] text-muted-foreground">
+              Población 2022
+            </div>
+            <div className="text-lg font-semibold text-foreground">
+              2.699{" "}
+              <span className="text-xs text-amber-500">−1,2%</span>
+            </div>
+          </div>
+          <div className="rounded-xl border border-[var(--border)] bg-card/60 p-3">
+            <div className="text-[11px] text-muted-foreground">
+              Vegetación activa obs.
+            </div>
+            <div className="text-lg font-semibold text-foreground">
+              {satellite.status === "ready" ? "2.804–3.794 ha" : "—"}
+            </div>
+          </div>
+        </div>
+
+        {/* Clickable point list */}
+        <PointList
+          puntos={puntos}
+          selectedId={selectedPunto?.id ?? null}
+          onSelect={selectPunto}
+        />
+
+        {/* Collapsible briefing chapters */}
         {territorial.status === "ready" ? (
           <TerritorialBriefing
             territorial={territorial.data}
