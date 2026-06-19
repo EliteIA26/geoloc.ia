@@ -68,11 +68,14 @@ def download_asset(href, dst_path):
     return dst_path
 
 
-def read_band_to_4326(local_path, bbox, res=DST_RES):
+def read_band_to_4326(
+    local_path, bbox, res=DST_RES, resampling=Resampling.bilinear
+):
     """Read a local UTM band and reproject/crop it to EPSG:4326 over the bbox.
 
     B11/B03 are 20m/10m; bilinear resampling to the fixed grid handles the
-    resolution mismatch. Returns the destination array (float32, NaN nodata).
+    resolution mismatch. Categorical bands such as SCL must explicitly pass
+    ``Resampling.nearest``. Returns a float32 array with NaN nodata.
     """
     w, s, e, n = bbox
     width = int(round((e - w) / res))
@@ -87,7 +90,7 @@ def read_band_to_4326(local_path, bbox, res=DST_RES):
             src_crs=src.crs,
             dst_transform=dst_transform,
             dst_crs="EPSG:4326",
-            resampling=Resampling.bilinear,
+            resampling=resampling,
             src_nodata=0,
             dst_nodata=np.nan,
         )

@@ -1,0 +1,140 @@
+{
+  "depto": "Vinchina",
+  "resumen": "Vinchina · Valle del Bermejo (Región I). Insumo de inteligencia territorial para el Plan de Desarrollo Productivo — relacionado al POT 2015 (diagnóstico territorial de base), con datos 2022 + observación satelital.",
+  "contexto": [
+    {
+      "etiqueta": "Población 2022",
+      "valor": "2.699",
+      "fonte": "INDEC Censo 2022",
+      "fecha": "2022",
+      "confianza": "oficial",
+      "url": "https://www.indec.gob.ar/ftp/cuadros/poblacion/c2022_larioja_est_c2_12.xlsx"
+    },
+    {
+      "etiqueta": "Variación 2010–2022",
+      "valor": "−1,2%",
+      "fonte": "INDEC Censos 2010 y 2022",
+      "fecha": "2010–2022",
+      "confianza": "oficial",
+      "url": "https://www.indec.gob.ar/ftp/censos/2010/CuadrosDefinitivos/P1-P_La_Rioja.xls",
+      "nota": "comparación entre Censo 2010 (2.731) y Censo 2022 (2.699); este enlace abre la base 2010 y el indicador anterior, la base 2022; despoblamiento — contrasta con +15,1% provincial"
+    },
+    {
+      "etiqueta": "Establecimientos formales por sector",
+      "valor": "15 establecimientos registrados; lideran comercio (4), minería (3) y transporte y almacenamiento (3)",
+      "fonte": "CEP XXI · Datos de establecimientos por departamento y actividad",
+      "fecha": "2022",
+      "confianza": "oficial",
+      "url": "https://cdn.produccion.gob.ar/cdn-cep/establecimientos-productivos/Datos_por_departamento_y_actividad.csv",
+      "nota": "mide establecimientos registrados, no empleo ni producción; subrepresenta la informalidad rural"
+    },
+    {
+      "etiqueta": "Empleo formal registrado por sector",
+      "valor": "216 puestos de trabajo registrados: construcción (127), transporte y almacenamiento (49), agricultura (11), minería (11), comercio (10), finanzas y seguros (5), administración y apoyo (2), y alojamiento y comidas (1)",
+      "fonte": "CEP XXI · Datos de establecimientos por departamento y actividad",
+      "fecha": "2022",
+      "confianza": "oficial",
+      "url": "https://cdn.produccion.gob.ar/cdn-cep/establecimientos-productivos/Datos_por_departamento_y_actividad.csv",
+      "nota": "puestos asalariados registrados; excluye empleo no registrado y trabajo por cuenta propia, incluida la actividad rural informal"
+    },
+    {
+      "etiqueta": "Localidades del Valle del Bermejo (Región I)",
+      "valor": "Vinchina y Jagüé (dpto. Vinchina); Villa Castelli (Gral. Lamadrid); Villa Unión, Guandacol y Pagancillo (Cnel. Felipe Varela)",
+      "fonte": "IGN · localidades",
+      "fecha": "2026",
+      "confianza": "oficial",
+      "nota": "Villa Unión es cabecera y base de servicios del valle (acceso a Talampaya); Vinchina es cabecera de su depto"
+    }
+  ],
+  "satelite": [],
+  "turismo": [
+    {
+      "etiqueta": "Reserva Provincial Laguna Brava",
+      "valor": "Lagunas de altura (>4.000 m) · flamencos y vicuñas",
+      "fonte": "Turismo La Rioja · Sitio Ramsar",
+      "fecha": "2026",
+      "confianza": "oficial",
+      "nota": "dpto. Vinchina; en el camino, los refugios históricos Mitre y Sarmiento (s. XIX)"
+    },
+    {
+      "etiqueta": "Parque Arqueológico Estrellas de Vinchina",
+      "valor": "Geoglifos líticos (estrella de 12 puntas) de los Capayanes",
+      "fonte": "Turismo La Rioja",
+      "fecha": "2019",
+      "confianza": "oficial",
+      "nota": "a ~3 km de Vinchina; parque arqueológico desde 2019"
+    },
+    {
+      "etiqueta": "Quebrada de la Troya + corredor a Pircas Negras",
+      "valor": "Geoformas y ruta escénica (RN76) hacia el paso fronterizo",
+      "fonte": "Turismo La Rioja",
+      "fecha": "2026",
+      "confianza": "declarado"
+    },
+    {
+      "etiqueta": "Parque Nacional Talampaya (valle, fuera de Vinchina)",
+      "valor": "Patrimonio de la Humanidad UNESCO · base en Villa Unión",
+      "fonte": "Administración de Parques Nacionales · UNESCO",
+      "fecha": "2026",
+      "confianza": "oficial",
+      "nota": "dpto. Cnel. Felipe Varela; principal atractor turístico del valle"
+    }
+  ],
+  "potencial": [
+    {
+      "etiqueta": "Turismo (línea priorizada del POT)",
+      "valor": "Alto — Laguna Brava, Estrellas de Vinchina y corredor a Chile",
+      "fonte": "Plan de Ordenamiento Territorial para el Valle del Bermejo – Informe Final",
+      "fecha": "2015",
+      "confianza": "oficial",
+      "url": "https://www.argentina.gob.ar/sites/default/files/plan_de_ordenamiento_territorial_valle_del_bermejo_la_rioja_informe_final_.pdf",
+      "nota": "el POT plantea \"liderar el turismo en La Rioja\"; limitación: infraestructura y conectividad"
+    },
+    {
+      "etiqueta": "Cadenas agro (vitivinícola / olivícola)",
+      "valor": "Moderado — cadenas priorizadas en el POT + vegetación activa observada",
+      "fonte": "POT Valle del Bermejo (2015) + Sentinel-2",
+      "fecha": "2015–2026",
+      "confianza": "estimado",
+      "nota": "restricción hídrica; el satélite observa vegetación activa, no cultivo — la superficie cultivada exacta requiere validación local"
+    },
+    {
+      "etiqueta": "Logística binacional (corredor Pircas Negras)",
+      "valor": "Condicionado — Corredor Bioceánico, hoy \"incipiente\" según el POT",
+      "fonte": "Plan de Ordenamiento Territorial para el Valle del Bermejo – Informe Final",
+      "fecha": "2015",
+      "confianza": "oficial",
+      "url": "https://www.argentina.gob.ar/sites/default/files/plan_de_ordenamiento_territorial_valle_del_bermejo_la_rioja_informe_final_.pdf",
+      "nota": "depende de obra vial; oportunidad productiva si se concreta"
+    }
+  ],
+  "chile": [
+    {
+      "etiqueta": "Paso a Chile",
+      "valor": "Pircas Negras (RN76)",
+      "fonte": "Ministerio del Interior · Centros de Frontera",
+      "fecha": "2025-05-16",
+      "confianza": "oficial",
+      "url": "https://www.argentina.gob.ar/interior/centros-de-frontera/pircas-negras",
+      "nota": "4.164 m · RN76 · Corredor Bioceánico NOA-Centro"
+    },
+    {
+      "etiqueta": "Distancia vial Vinchina–Paso Pircas Negras",
+      "valor": "183,4 km",
+      "fonte": "DNV · Rutas Nacionales (RN 0076)",
+      "fecha": "2025-04-23",
+      "confianza": "estimado",
+      "url": "https://datos.gob.ar/dataset/transporte-rutas-nacionales/archivo/transporte_98a9ee1b-321d-4b68-b00e-bf44ae448e2c",
+      "nota": "calculada sobre la geometría vial oficial simplificada de RN 0076; no es distancia en línea recta"
+    },
+    {
+      "etiqueta": "Diagnóstico del corredor en el POT (2015)",
+      "valor": "incipiente",
+      "fonte": "Plan de Ordenamiento Territorial para el Valle del Bermejo – Informe Final",
+      "fecha": "2015",
+      "confianza": "oficial",
+      "url": "https://www.argentina.gob.ar/sites/default/files/plan_de_ordenamiento_territorial_valle_del_bermejo_la_rioja_informe_final_.pdf",
+      "nota": "diagnóstico histórico de 2015; “En la actualidad es incipiente el desarrollo de este corredor internacional” (p. 35, Subsistema físico espacial)"
+    }
+  ]
+}
