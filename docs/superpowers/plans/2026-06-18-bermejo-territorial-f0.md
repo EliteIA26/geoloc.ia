@@ -141,6 +141,9 @@ export const TerritorialSchema = z.object({
 });
 export type Territorial = z.infer<typeof TerritorialSchema>;
 
+export const VINCHINA_MONITORED_SCOPE =
+  "Intersección del departamento Vinchina con la ventana monitoreada del Valle del Bermejo. No representa todo el departamento.";
+
 export const VinchinaSatelitalSchema = z.object({
   fecha: z.string(),
   alcance: z.literal(VINCHINA_MONITORED_SCOPE), // Contrato canónico exacto; no acepta variantes vagas.

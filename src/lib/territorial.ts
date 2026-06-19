@@ -85,8 +85,17 @@ export const VinchinaSatelitalSchema = z
       });
     }
 
-    const expectedSceneUrl = `${PLANETARY_COMPUTER_SENTINEL_2_ITEM_URL}/${encodeStacItemId(data.sceneId)}`;
-    if (data.sceneUrl !== expectedSceneUrl) {
+    let expectedSceneUrl: string | undefined;
+    try {
+      expectedSceneUrl = `${PLANETARY_COMPUTER_SENTINEL_2_ITEM_URL}/${encodeStacItemId(data.sceneId)}`;
+    } catch {
+      context.addIssue({
+        code: "custom",
+        message: "sceneId must contain well-formed Unicode",
+        path: ["sceneId"],
+      });
+    }
+    if (expectedSceneUrl !== undefined && data.sceneUrl !== expectedSceneUrl) {
       context.addIssue({
         code: "custom",
         message: "sceneUrl must identify the exact sceneId",

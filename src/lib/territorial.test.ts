@@ -196,6 +196,21 @@ describe("VinchinaSatelitalSchema", () => {
       ).success,
     ).toBe(false);
   });
+
+  it("safely rejects a scene ID containing a lone UTF-16 surrogate", () => {
+    let result: ReturnType<typeof VinchinaSatelitalSchema.safeParse> | undefined;
+
+    expect(() => {
+      result = VinchinaSatelitalSchema.safeParse(
+        satellitePayload({
+          sceneId: "\uD800",
+          sceneUrl:
+            "https://planetarycomputer.microsoft.com/api/stac/v1/collections/sentinel-2-l2a/items/%EF%BF%BD",
+        }),
+      );
+    }).not.toThrow();
+    expect(result?.success).toBe(false);
+  });
 });
 
 describe("IndicadorSchema source URL", () => {
