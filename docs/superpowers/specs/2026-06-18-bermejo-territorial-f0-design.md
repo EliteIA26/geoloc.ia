@@ -19,7 +19,7 @@ Este é um **demo apresentável** (o "video/hito" que ele pediu) — não a plat
 - **Reúsa** o stack atual: Next 16, MapLibre/`MapShell`, UI premium/glass, pipeline Sentinel-2.
 
 ### Não-objetivos (F0)
-Mapa de atores, score de "potencial", cadastro de produtores, identificação de cultivo específico, dados em tempo real. Excluídos por honestidade/credibilidade — dependem de validação local do Federico ou são fase 2.
+Mapa de atores, **score/índice de "potencial" calculado por IA**, cadastro de produtores, identificação de cultivo específico, dados em tempo real. Excluídos por honestidade/credibilidade — dependem de validação local do Federico ou são fase 2. (O **potencial** aparece apenas como **dimensões qualitativas com evidência** — turismo/agro/logística ancoradas no POT + observação —, nunca como número/score automático.)
 
 ## 3. Arquitetura
 
@@ -38,10 +38,12 @@ Mapa de atores, score de "potencial", cadastro de produtores, identificação de
 Uma tela, dois painéis:
 
 - **Mapa 3D (centro):** os 3 deptos visíveis, **Vinchina destacada**, e o **corredor RN76 → Pircas Negras** traçado até a fronteira com o Chile. Reusa o voo 3D/órbita ao focar Vinchina.
-- **Briefing (aside) — arco de 3 capítulos (rolagem):**
-  1. **Contexto socio-productivo** ("o que é Vinchina"): atividade econômica + emprego formal por setor (substância produtiva); população 2010/2022 + variação **−1,2%** como apoio (mão de obra / despovoamento).
+- **Briefing (aside) — arco de 5 capítulos (rolagem):**
+  1. **Contexto socio-productivo** ("o que é Vinchina"): atividade econômica + emprego formal por setor (substância produtiva); população 2010/2022 + variação **−1,2%** como apoio (mão de obra / despovoamento); **localidades do vale** por departamento.
   2. **Vegetación activa observada (satélite)** (o "aha"): *"área com vegetação ativa observada · valle monitoreado: X–Y ha, estimado"* + NDVI e NDMI (proxies de vigor e umidade). O AOI é somente a janela monitorada do Valle del Bermejo intersectada com Vinchina; **não representa todo o departamento**. É um insumo biofísico para análise produtiva: pode representar vegetação cultivada ou natural, exige validação local e não mede diretamente cultivo, produção ou uso de água.
-  3. **Logística / conexão com Chile:** corredor a Pircas Negras — distância vial estimada sobre a geometria oficial DNV, status histórico **"incipiente"** (POT 2015, p. 35), a oportunidade produtiva que habilita.
+  3. **Turismo (atractivos):** Laguna Brava, Estrellas de Vinchina, Quebrada de la Troya / corredor; Talampaya como atrator do vale (fora de Vinchina, dpto. Felipe Varela). Setor priorizado pelo POT.
+  4. **Potencial productivo:** dimensões qualitativas com evidência (turismo / agro vitícola-olivícola / logística binacional) ancoradas no POT 2015 + observação satelital — **não** um score automático; cada linha com sua limitação (água, conectividade, validação).
+  5. **Logística / conexão com Chile:** corredor a Pircas Negras — distância vial estimada sobre a geometria oficial DNV, status histórico **"incipiente"** (POT 2015, p. 35), a oportunidade produtiva que habilita.
 - **Cada indicador** carrega selo **fonte · data · confiança**. Cabeçalho enquadra como *insumo para o Plan de Desarrollo Productivo* (POT 2015 como base relacionada). O arco lidera pela substância **produtiva** (economia + proxy de vegetação ativa observada + logística); demografia e os proxies biofísicos entram como **contexto de apoio à decisão produtiva**, sem serem apresentados como medição direta de produção.
 
 ## 5. Dados, fontes e regras de honestidade
