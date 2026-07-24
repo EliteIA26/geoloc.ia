@@ -1,6 +1,29 @@
 {
   "escenas": [
     {
+      "fecha": "2026-07-23",
+      "nubes": 21.2,
+      "png": "/raster/aimogasta-ndvi-2026-07-23.png",
+      "coordinates": [
+        [
+          -66.84,
+          -27.76
+        ],
+        [
+          -66.7,
+          -27.76
+        ],
+        [
+          -66.7,
+          -27.9
+        ],
+        [
+          -66.84,
+          -27.9
+        ]
+      ]
+    },
+    {
       "fecha": "2026-07-18",
       "nubes": 25.6,
       "png": "/raster/aimogasta-ndvi-2026-07-18.png",
@@ -96,29 +119,6 @@
       "fecha": "2026-06-28",
       "nubes": 20.2,
       "png": "/raster/aimogasta-ndvi-2026-06-28.png",
-      "coordinates": [
-        [
-          -66.84,
-          -27.76
-        ],
-        [
-          -66.7,
-          -27.76
-        ],
-        [
-          -66.7,
-          -27.9
-        ],
-        [
-          -66.84,
-          -27.9
-        ]
-      ]
-    },
-    {
-      "fecha": "2026-06-23",
-      "nubes": 0.7,
-      "png": "/raster/aimogasta-ndvi-2026-06-23.png",
       "coordinates": [
         [
           -66.84,
