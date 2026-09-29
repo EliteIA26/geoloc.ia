@@ -1,13 +1,13 @@
 {
-  "ndmiAimogasta": -0.108,
+  "ndmiAimogasta": -0.13,
   "ndviTrend": {
-    "actual": 0.107,
+    "actual": 0.089,
     "anterior": 0.12,
     "fechaAnterior": "2026-08-27"
   },
   "nieve": {
-    "cobertura": 1.4,
-    "fecha": "2026-09-26",
+    "cobertura": 1.2,
+    "fecha": "2026-09-28",
     "region": "Sierra de Famatina"
   }
 }
