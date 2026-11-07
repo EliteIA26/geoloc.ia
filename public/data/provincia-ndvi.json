@@ -5,21 +5,27 @@
     "Chamical": 0.391,
     "General Ortiz de Ocampo": 0.509,
     "General Belgrano": 0.489,
+    "General Felipe Varela": 0.18,
     "Rosario Vera Peñaloza": 0.384,
     "Ángel Vicente Peñaloza": 0.371,
     "General San Martín": 0.471,
     "General Juan Facundo Quiroga": 0.355,
-    "Independencia": 0.336
+    "Independencia": 0.336,
+    "Vinchina": 0.067,
+    "General Lamadrid": 0.071
   },
   "deptosNdwi": {
     "Capital": 0.062,
     "Chamical": 0.065,
     "General Ortiz de Ocampo": 0.141,
     "General Belgrano": 0.143,
+    "General Felipe Varela": -0.056,
     "Rosario Vera Peñaloza": 0.046,
     "Ángel Vicente Peñaloza": 0.006,
     "General San Martín": 0.109,
     "General Juan Facundo Quiroga": -0.014,
-    "Independencia": -0.049
+    "Independencia": -0.049,
+    "Vinchina": 0.193,
+    "General Lamadrid": 0.06
   }
 }
