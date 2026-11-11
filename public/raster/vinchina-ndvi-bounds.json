@@ -17,8 +17,8 @@
       -28.9
     ]
   ],
-  "captura": "2026-11-05",
-  "nubes": 0.0,
+  "captura": "2026-11-10",
+  "nubes": 0.1,
   "alcance": "Intersección del departamento Vinchina con la ventana monitoreada del Valle del Bermejo. No representa todo el departamento.",
   "bbox": [
     -68.4,
@@ -26,9 +26,9 @@
     -68.05,
     -28.6
   ],
-  "sceneId": "S2C_MSIL2A_20261105T142751_R053_T19JEJ_20261105T190403",
-  "coberturaValidaPct": 99.8,
-  "sceneUrl": "https://planetarycomputer.microsoft.com/api/stac/v1/collections/sentinel-2-l2a/items/S2C_MSIL2A_20261105T142751_R053_T19JEJ_20261105T190403",
+  "sceneId": "S2B_MSIL2A_20261110T142719_R053_T19JEJ_20261110T180922",
+  "coberturaValidaPct": 99.9,
+  "sceneUrl": "https://planetarycomputer.microsoft.com/api/stac/v1/collections/sentinel-2-l2a/items/S2B_MSIL2A_20261110T142719_R053_T19JEJ_20261110T180922",
   "mascaraAOI": "Vinchina dentro de la ventana monitoreada del Valle del Bermejo",
   "ndmiMedioZona": "vegetación activa NDVI > 0.25"
 }
